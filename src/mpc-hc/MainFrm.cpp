@@ -2809,7 +2809,7 @@ void CMainFrame::OnABRepeat(UINT nID) {
             } else if (havePos) {
                 abRepeat.positionA = pos;
                 if (abRepeat.positionA < rtDur) {
-                    if (abRepeat.positionB && abRepeat.positionA >= abRepeat.positionB) {
+                    if (abRepeat.positionB && abRepeat.positionA + 500 * 10000LL > abRepeat.positionB) {
                         abRepeat.positionB = 0;
                     }
                 } else {
@@ -2821,7 +2821,7 @@ void CMainFrame::OnABRepeat(UINT nID) {
                 abRepeat.positionB = 0;
             } else if (havePos) {
                 abRepeat.positionB = pos;
-                if (abRepeat.positionB > 0 && abRepeat.positionB > abRepeat.positionA && rtDur >= abRepeat.positionB) {
+                if (abRepeat.positionB > 0 && rtDur >= abRepeat.positionB && abRepeat.positionB >= abRepeat.positionA + 500 * 10000LL) {
                     if (GetMediaState() == State_Running) {
                         PerformABRepeat(); //we just set loop point B, so we need to repeat right now
                     }
@@ -2840,6 +2840,15 @@ void CMainFrame::OnABRepeat(UINT nID) {
 }
 
 void CMainFrame::PerformABRepeat() {
+    ULONGLONG tcnow = GetTickCount64();
+    if (tcnow > abRepeat.tcLastRepeat + 500ULL) {
+        abRepeat.tcLastRepeat = tcnow;
+    } else {
+        // prevent endless loop
+        DisableABRepeat();
+        return;
+    }
+
     DoSeekTo(abRepeat.positionA, false);
 
     if (GetMediaState() == State_Stopped) {
