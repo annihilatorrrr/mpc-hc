@@ -3602,7 +3602,9 @@ void CAppSettings::CRecentFileListWithMoreInfo::SetSize(size_t nSize) {
 }
 
 void CAppSettings::CRecentFileListWithMoreInfo::RemoveAll() {
+    size_t max = m_maxSize;
     SetSize(0);
+    m_maxSize = max;
 }
 
 bool CAppSettings::IsVSFilterInstalled()
