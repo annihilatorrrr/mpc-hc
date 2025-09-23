@@ -350,6 +350,9 @@ CString GetContentType(CString fn, CAtlList<CString>* redir)
         }
         if (_tcsicmp(url.GetSchemeName(), _T("http")) == 0 || _tcsicmp(url.GetSchemeName(), _T("https")) == 0) {
             ishttp = true;
+            if (AfxGetMainFrame()->CanSendToYoutubeDL(fn)) {
+                return "ytdl";
+            }
         } else {
             return "";
         }

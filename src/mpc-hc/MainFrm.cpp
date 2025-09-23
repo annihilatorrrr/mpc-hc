@@ -22109,7 +22109,12 @@ bool CMainFrame::IsOnYDLWhitelist(CString url) {
 
 bool CMainFrame::CanSendToYoutubeDL(const CString url)
 {
-    if (url.Left(4).MakeLower() == _T("http") && AfxGetAppSettings().bUseYDL) {
+    if (url.Left(4).MakeLower() == _T("http") || url.Left(8).MakeLower() == _T("youtube:")) {
+        auto& s = AfxGetAppSettings();
+        if (!s.bUseYDL) {
+            return false;
+        }
+
         // Blacklist: don't use for IP addresses
         std::wcmatch regmatch;
         std::wregex regexp(LR"(https?:\/\/(\d{1,3}\.){3}\d{1,3}.*)");
@@ -22144,7 +22149,7 @@ bool CMainFrame::CanSendToYoutubeDL(const CString url)
             if (ext == L".m3u8" || ext == L".mpd") {
                 return false;
             }
-            if (AfxGetAppSettings().m_Formats.FindExt(ext)) {
+            if (s.m_Formats.FindExt(ext)) {
                 return false;
             }
         }
