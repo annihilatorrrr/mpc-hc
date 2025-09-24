@@ -2124,7 +2124,7 @@ BOOL CMPlayerCApp::InitInstance()
     m_AudioRendererDisplayName_CL = _T("");
 
     if (!__super::InitInstance()) {
-        AfxMessageBox(_T("InitInstance failed!"));
+        MessageBoxW(nullptr, L"MPC-HC encountered a problem during initialization", L"MPC-HC", MB_ICONERROR | MB_OK);
         return FALSE;
     }
 
@@ -2134,14 +2134,20 @@ BOOL CMPlayerCApp::InitInstance()
     try {
         pFrame = DEBUG_NEW CMainFrame;
         if (!pFrame || !pFrame->LoadFrame(IDR_MAINFRAME, WS_OVERLAPPEDWINDOW | FWS_ADDTOTITLE, nullptr, nullptr)) {
-            MessageBox(nullptr, ResStr(IDS_FRAME_INIT_FAILED), m_pszAppName, MB_ICONERROR | MB_OK);
+            MessageBox(nullptr, L"MPC-HC encountered a problem during initialization", L"MPC-HC", MB_ICONERROR | MB_OK);
             return FALSE;
         }
     } catch (...) {
+        MessageBoxW(nullptr, L"MPC-HC encountered a problem during initialization", L"MPC-HC", MB_ICONERROR | MB_OK);
         return FALSE;
     }
 
     m_pMainWnd = pFrame;
+    if (!m_pMainWnd) {
+        MessageBoxW(nullptr, L"MPC-HC encountered a problem during initialization", L"MPC-HC", MB_ICONERROR | MB_OK);
+        return FALSE;
+    }
+
     pFrame->m_controls.LoadState();
     CPoint borderAdjustDirection;
     pFrame->SetDefaultWindowRect((m_s->nCLSwitches & CLSW_MONITOR) ? m_s->iMonitor : 0);
