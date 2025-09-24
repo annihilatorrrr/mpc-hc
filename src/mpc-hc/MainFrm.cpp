@@ -22109,7 +22109,7 @@ bool CMainFrame::IsOnYDLWhitelist(CString url) {
 
 bool CMainFrame::CanSendToYoutubeDL(const CString url)
 {
-    if (url.Left(4).MakeLower() == _T("http") || url.Left(8).MakeLower() == _T("youtube:")) {
+    if (url.Left(4).MakeLower() == _T("http")) {
         auto& s = AfxGetAppSettings();
         if (!s.bUseYDL) {
             return false;
