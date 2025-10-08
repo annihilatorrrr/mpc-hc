@@ -1467,6 +1467,11 @@ void CMainFrame::RecalcLayout(BOOL bNotify)
 
     CRect r;
     GetWindowRect(&r);
+    if (r.IsRectNull()) {
+        ASSERT(false);
+        return;
+    }
+
     MINMAXINFO mmi;
     ZeroMemory(&mmi, sizeof(mmi));
     OnGetMinMaxInfo(&mmi);
