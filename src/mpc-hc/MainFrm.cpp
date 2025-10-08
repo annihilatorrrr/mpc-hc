@@ -1250,13 +1250,18 @@ void CMainFrame::OnClose()
     s.dZoomX = m_ZoomX;
     s.dZoomY = m_ZoomY;
 
-    m_wndPlaylistBar.SavePlaylist();
-
     m_controls.SaveState();
 
     m_OSD.OnHide();
 
     ShowWindow(SW_HIDE);
+
+    if (GetMediaState() == State_Running) {
+        MediaControlPause(true);
+    }
+
+    m_wndPlaylistBar.SavePlaylist();
+    m_wndPlaylistBar.ClearExternalPlaylistIfInvalid();
 
     if (GetLoadState() == MLS::LOADED || GetLoadState() == MLS::LOADING) {
         CloseMedia();
@@ -1264,8 +1269,6 @@ void CMainFrame::OnClose()
 
     ASSERT(GetLoadState() == MLS::CLOSED);
     ASSERT(!m_bOpenMediaActive);
-
-    m_wndPlaylistBar.ClearExternalPlaylistIfInvalid();
 
     s.WinLircClient.DisConnect();
     s.UIceClient.DisConnect();
@@ -19257,6 +19260,10 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
     auto& s = AfxGetAppSettings();
     bool savehistory = false;
     if (GetLoadState() == MLS::LOADED) {
+        if (GetMediaState() == State_Running) {
+            MediaControlPause(true);
+        }
+
         // abort sub search
         m_pSubtitlesProviders->Abort(SubtitlesThreadType(STT_SEARCH | STT_DOWNLOAD));
         m_wndSubtitlesDownloadDialog.DoClear();
