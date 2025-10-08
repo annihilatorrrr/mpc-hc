@@ -307,6 +307,8 @@ BOOL CSubtitleDlDlg::OnInitDialog()
     AddAnchor(IDC_BUTTON4, BOTTOM_RIGHT);
     AddAnchor(IDC_STATUSBAR, BOTTOM_LEFT, BOTTOM_RIGHT);
 
+    CheckDlgButton(IDC_CHECK1, true);
+
     CRect cr;
     GetClientRect(cr);
     const CSize s(cr.Width(), 250);
