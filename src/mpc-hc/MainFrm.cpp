@@ -13759,8 +13759,10 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
                         m_pSplitterSS = pBF;
                     } else {
                         if (clsid == CLSID_VSFilter || clsid == CLSID_XySubFilter) {
-                            m_pDVS = pBF;
-                            m_pDVS2 = pBF;
+                            if (!s.IsISRAutoLoadEnabled()) {
+                                m_pDVS = pBF;
+                                m_pDVS2 = pBF;
+                            }
                         } else {
                             if (clsid != CLSID_MPCBEAudioRenderer) {
                                 if (CComQIPtr<IAMStreamSelect> pTest = pBF) {
@@ -14297,8 +14299,10 @@ void CMainFrame::OpenDVD(OpenDVDData* pODD)
             m_pAudioSwitcherSS = pBF;
         } else {
             if (clsid == CLSID_VSFilter || clsid == CLSID_XySubFilter) {
-                m_pDVS = pBF;
-                m_pDVS2 = pBF;
+                if (!s.IsISRAutoLoadEnabled()) {
+                    m_pDVS = pBF;
+                    m_pDVS2 = pBF;
+                }
             } else {
                 if (clsid != CLSID_MPCBEAudioRenderer) {
                     if (CComQIPtr<IAMStreamSelect> pTest = pBF) {
@@ -14414,8 +14418,10 @@ HRESULT CMainFrame::OpenBDAGraph()
                 m_pAudioSwitcherSS = pBF;
             } else {
                 if (clsid == CLSID_VSFilter || clsid == CLSID_XySubFilter) {
-                    m_pDVS = pBF;
-                    m_pDVS2 = pBF;
+                    if (!AfxGetAppSettings().IsISRAutoLoadEnabled()) {
+                        m_pDVS = pBF;
+                        m_pDVS2 = pBF;
+                    }
                 }
             }
         }
