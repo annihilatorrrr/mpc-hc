@@ -713,16 +713,11 @@ HRESULT CDX9AllocatorPresenter::CreateDevice(CString& _Error)
         m_hFocusWindow = m_hWnd;
 
         if (m_pD3DEx) {
-            HRESULT getModeResult = m_pD3DEx->GetAdapterDisplayModeEx(m_CurrentAdapter, &DisplayMode, nullptr);
-
-            if (getModeResult == D3DERR_NOTAVAILABLE) {
-                m_pD3DEx = nullptr;
-                Direct3DCreate9Ex(D3D_SDK_VERSION, &m_pD3DEx);
-                if (nullptr != m_pD3DEx) {
-                    getModeResult = m_pD3DEx->GetAdapterDisplayModeEx(m_CurrentAdapter, &DisplayMode, nullptr);
-                }
+            HRESULT hr_adm = m_pD3DEx->GetAdapterDisplayModeEx(m_CurrentAdapter, &DisplayMode, nullptr);
+            if (FAILED(hr_adm)) {
+                ASSERT(false);
+                return E_FAIL;
             }
-            CHECK_HR(getModeResult);
 
             m_ScreenSize.SetSize(DisplayMode.Width, DisplayMode.Height);
             m_refreshRate = DisplayMode.RefreshRate;
