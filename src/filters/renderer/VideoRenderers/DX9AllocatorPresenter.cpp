@@ -626,7 +626,6 @@ HRESULT CDX9AllocatorPresenter::CreateDevice(CString& _Error)
         if (r.m_AdvRendSets.bVMR9FullscreenGUISupport && !m_bHighColorResolution) {
             pp.Flags |= D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
         }
-        m_D3DDevExError = _T("No m_pD3DEx");
 
         if (!m_FocusThread) {
             m_FocusThread = (CFocusThread*)AfxBeginThread(RUNTIME_CLASS(CFocusThread), 0, 0, 0);
@@ -669,6 +668,8 @@ HRESULT CDX9AllocatorPresenter::CreateDevice(CString& _Error)
                 m_BackbufferType = pp.BackBufferFormat;
                 m_DisplayType = DisplayMode.Format;
             }
+        } else {
+            m_D3DDevExError = _T("No m_pD3DEx");
         }
         if (bTryToReset && m_pD3DDev && !m_pD3DDevEx) {
             if (FAILED(hr = m_pD3DDev->Reset(&pp))) {
