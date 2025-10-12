@@ -3062,7 +3062,8 @@ void CMpcAudioRenderer::StartReleaseTimer()
 
 void CMpcAudioRenderer::EndReleaseTimer()
 {
-	if (m_hReleaseTimerHandle) {
+    CAutoLock cRenderLock(&m_csRender);
+    if (m_hReleaseTimerHandle) {
 		std::ignore = DeleteTimerQueueTimer(nullptr, m_hReleaseTimerHandle, INVALID_HANDLE_VALUE);
 		m_hReleaseTimerHandle = nullptr;
 	}
@@ -3089,8 +3090,10 @@ void CMpcAudioRenderer::ReleaseDevice()
 		m_pAudioClient->Stop();
 	}
 
-	std::ignore = DeleteTimerQueueTimer(nullptr, m_hReleaseTimerHandle, nullptr);
-	m_hReleaseTimerHandle = nullptr;
+    if (m_hReleaseTimerHandle) {
+        std::ignore = DeleteTimerQueueTimer(nullptr, m_hReleaseTimerHandle, nullptr);
+        m_hReleaseTimerHandle = nullptr;
+    }
 }
 
 void CMpcAudioRenderer::ApplyVolumeBalance(BYTE* pData, UINT32 size)
