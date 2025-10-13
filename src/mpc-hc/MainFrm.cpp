@@ -9053,7 +9053,9 @@ void CMainFrame::OnPlayStop(bool is_closing)
             MediaControlStop(true);
         }
 
-        m_dSpeedRate = 1.0;
+        if (!m_fEndOfStream) {
+            m_dSpeedRate = 1.0;
+        }
 
         if (m_fFrameSteppingActive) {
             m_pFS->CancelStep();
