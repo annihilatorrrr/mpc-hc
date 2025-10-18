@@ -6504,7 +6504,10 @@ void CMainFrame::OnFileSaveImage()
         } else {
             ext += s.strSnapshotExt;
         }
-        pdst.RenameExtension(ext);
+        if (!pdst.RenameExtension(ext)) {
+            ASSERT(false);
+            return;
+        }
     }
     CString path = (LPCTSTR)pdst;
     pdst.RemoveFileSpec();
@@ -6620,7 +6623,11 @@ void CMainFrame::OnFileSaveThumbnails()
         } else {
             ext += s.strSnapshotExt;
         }
-        pdst.RenameExtension(ext);
+        if (!pdst.RenameExtension(ext)) {
+            // ToDo: write helper functions for renaming that support long paths
+            ASSERT(false);
+            return;
+        }
     }
     CString path = (LPCTSTR)pdst;
     pdst.RemoveFileSpec();
