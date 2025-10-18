@@ -44,7 +44,17 @@ CTextFile::CTextFile(enc e)
 
 bool CTextFile::Open(LPCTSTR lpszFileName)
 {
-    if (!__super::Open(lpszFileName, modeRead | typeBinary | shareDenyNone)) {
+    wchar_t shortpath[MAX_PATH];
+    LPCTSTR lpszFileNameShort = lpszFileName;
+    if (lstrlen(lpszFileName) > MAX_PATH) {
+        wchar_t shortpath[MAX_PATH];
+        DWORD len = GetShortPathNameW(lpszFileName, shortpath, MAX_PATH);
+        if (len > 0 && len <= MAX_PATH) {
+            lpszFileNameShort = shortpath;
+        }
+    }
+
+    if (!__super::Open(lpszFileNameShort, modeRead | typeBinary | shareDenyNone)) {
         return false;
     }
 
