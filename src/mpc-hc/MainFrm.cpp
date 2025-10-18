@@ -13957,8 +13957,7 @@ void CMainFrame::SetupExternalChapters()
     }
 
     CPath cp(fn);
-    cp.RenameExtension(_T(".xchp"));
-    if (!cp.FileExists()) {
+    if (!cp.RenameExtension(_T(".xchp")) || !cp.FileExists()) {
         return;
     }
     fn = cp.m_strPath;
