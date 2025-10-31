@@ -1683,6 +1683,74 @@ static BOOL CreateFakeVideoTS(LPCWSTR strIFOPath, LPWSTR strFakeFile, size_t nFa
     return bRet;
 }
 
+static CMPCThemeScrollBarRenderer* GetScrollBarRenderer(HWND hWnd) {
+    CWnd* pWnd = CWnd::FromHandlePermanent(hWnd);
+
+    if (pWnd && AppNeedsThemedControls()) {
+        CMPCThemePlayerListCtrl* pListCtrl = DYNAMIC_DOWNCAST(CMPCThemePlayerListCtrl, pWnd);
+        if (pListCtrl) {
+            return pListCtrl; // Implicit upcast to CMPCThemeScrollBarRenderer*
+        }
+    }
+    return nullptr;
+}
+
+static BOOL(WINAPI* Real_BitBlt)(HDC, int, int, int, int, HDC, int, int, DWORD) = BitBlt;
+BOOL WINAPI Mine_BitBlt(HDC hdc, int x, int y, int cx, int cy, HDC hdcSrc, int x1, int y1, DWORD rop) {
+    HWND hWnd = WindowFromDC(hdc);
+    CMPCThemeScrollBarRenderer* pRenderer = GetScrollBarRenderer(hWnd);
+    if (pRenderer) {
+        CRect drawRect(x, y, x + cx, y + cy);
+        auto clipState = pRenderer->ApplyScrollbarClipping(hdc, hWnd, drawRect, true);
+        
+        BOOL result = TRUE;
+        if (!clipState.IsFullyClipped()) {
+            result = Real_BitBlt(hdc, x, y, cx, cy, hdcSrc, x1, y1, rop);
+        }
+        
+        CMPCThemeScrollBarRenderer::RestoreClipping(hdc, clipState);
+        return result;
+    }
+    return Real_BitBlt(hdc, x, y, cx, cy, hdcSrc, x1, y1, rop);
+}
+
+static BOOL(WINAPI* Real_GdiAlphaBlend)(HDC, int, int, int, int, HDC, int, int, int, int, BLENDFUNCTION) = GdiAlphaBlend;
+BOOL WINAPI Mine_GdiAlphaBlend(HDC hdcDest, int xoriginDest, int yoriginDest, int wDest, int hDest, HDC hdcSrc, int xoriginSrc, int yoriginSrc, int wSrc, int hSrc, BLENDFUNCTION ftn) {
+    HWND hWnd = WindowFromDC(hdcDest);
+    CMPCThemeScrollBarRenderer* pRenderer = GetScrollBarRenderer(hWnd);
+
+    if (pRenderer) {
+        CRect drawRect(xoriginDest, yoriginDest, xoriginDest + wDest, yoriginDest + hDest);
+        
+        // We draw to the src of the blend function -- note, this relies on an assumption
+        // that win32 uses a src hdc with the same origin as the window (double buffer hdc?)
+        // Real_GdiAlphaBlend will then function normally with our src data
+        auto clipState = pRenderer->ApplyScrollbarClipping(hdcSrc, hWnd, drawRect, true);
+        CMPCThemeScrollBarRenderer::RestoreClipping(hdcSrc, clipState);
+    }
+    
+    return Real_GdiAlphaBlend(hdcDest, xoriginDest, yoriginDest, wDest, hDest, hdcSrc, xoriginSrc, yoriginSrc, wSrc, hSrc, ftn);
+}
+
+static HRESULT(WINAPI* Real_DrawThemeBackground)(HTHEME, HDC, int, int, LPCRECT, LPCRECT) = DrawThemeBackground;
+HRESULT WINAPI Mine_DrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId, int iStateId, LPCRECT pRect, LPCRECT pClipRect) {
+    HWND hWnd = WindowFromDC(hdc);
+    CMPCThemeScrollBarRenderer* pRenderer = GetScrollBarRenderer(hWnd);
+    if (pRenderer) {
+        CRect drawRect(pRect);
+        auto clipState = pRenderer->ApplyScrollbarClipping(hdc, hWnd, drawRect, false);
+        
+        HRESULT result = S_OK;
+        if (!clipState.IsFullyClipped()) {
+            result = Real_DrawThemeBackground(hTheme, hdc, iPartId, iStateId, pRect, pClipRect);
+        }
+        
+        CMPCThemeScrollBarRenderer::RestoreClipping(hdc, clipState);
+        return result;
+    }
+    return Real_DrawThemeBackground(hTheme, hdc, iPartId, iStateId, pRect, pClipRect);
+}
+
 int(WINAPI* Real_ScrollWindowEx)(HWND, int, int, CONST RECT*, CONST RECT*, HRGN, LPRECT, UINT) = ScrollWindowEx;
 int WINAPI Mine_ScrollWindowEx(HWND hWnd, int dx, int dy, CONST RECT* prcScroll, CONST RECT* prcClip, HRGN hrgnUpdate, LPRECT prcUpdate, UINT flags)
 {
@@ -1856,6 +1924,9 @@ BOOL CMPlayerCApp::InitInstance()
     bHookingSuccessful &= !!Mhook_SetHookEx(&Real_CreateFileW, Mine_CreateFileW);
     bHookingSuccessful &= !!Mhook_SetHookEx(&Real_DeviceIoControl, Mine_DeviceIoControl);
     bHookingSuccessful &= !!Mhook_SetHookEx(&Real_ScrollWindowEx, Mine_ScrollWindowEx);
+    bHookingSuccessful &= !!Mhook_SetHookEx(&Real_BitBlt, Mine_BitBlt);
+    bHookingSuccessful &= !!Mhook_SetHookEx(&Real_GdiAlphaBlend, Mine_GdiAlphaBlend);
+    bHookingSuccessful &= !!Mhook_SetHookEx(&Real_DrawThemeBackground, Mine_DrawThemeBackground);
 
     bHookingSuccessful &= MH_EnableHook(MH_ALL_HOOKS) == MH_OK;
 
