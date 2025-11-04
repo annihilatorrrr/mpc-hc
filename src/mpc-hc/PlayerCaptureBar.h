@@ -30,6 +30,9 @@ class CPlayerCaptureBar : public CMPCThemePlayerBar
 {
     DECLARE_DYNAMIC(CPlayerCaptureBar)
 
+private:
+    CWnd* m_pParent;
+
 public:
     CPlayerCaptureDialog m_capdlg;
 
