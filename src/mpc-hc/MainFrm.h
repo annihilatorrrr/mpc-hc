@@ -450,7 +450,7 @@ private:
 
     bool m_fEndOfStream;
     ULONGLONG m_dwLastPause;
-    ULONGLONG m_dwReloadPos;
+    REFERENCE_TIME m_rtReloadPos;
     int m_iReloadAudioIdx;
     int m_iReloadSubIdx;
 

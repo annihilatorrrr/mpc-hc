@@ -821,7 +821,7 @@ CMainFrame::CMainFrame()
     , m_nVolumeBeforeFrameStepping(0)
     , m_fEndOfStream(false)
     , m_dwLastPause(0)
-    , m_dwReloadPos(0)
+    , m_rtReloadPos(0)
     , m_iReloadAudioIdx(-1)
     , m_iReloadSubIdx(-1)
     , m_bRememberFilePos(false)
@@ -4277,7 +4277,7 @@ LRESULT CMainFrame::OnOpenMediaFailed(WPARAM wParam, LPARAM lParam)
     m_bOpenMediaActive = false;
     m_OpenMediaFailedCount++;
 
-    m_dwReloadPos = 0;
+    m_rtReloadPos = 0;
     reloadABRepeat = ABRepeat();
     m_iReloadAudioIdx = -1;
     m_iReloadSubIdx = -1;
@@ -5288,11 +5288,11 @@ void CMainFrame::OnFileReopen()
 
     // save playback position
     if (GetLoadState() == MLS::LOADED) {
-        if (m_bRememberFilePos && !m_fEndOfStream && m_dwReloadPos == 0 && m_pMS) {
+        if (m_bRememberFilePos && !m_fEndOfStream && m_rtReloadPos == 0 && m_pMS) {
             auto& s = AfxGetAppSettings();
             REFERENCE_TIME rtNow = 0;
             m_pMS->GetCurrentPosition(&rtNow);
-            m_dwReloadPos = rtNow;
+            m_rtReloadPos = rtNow;
             s.MRU.UpdateCurrentFilePosition(rtNow, true);
         }
         reloadABRepeat = abRepeat;
@@ -8848,7 +8848,7 @@ void CMainFrame::OnPlayPlay()
                     // after long pause or hibernation, reload video file to avoid playback issues on some systems (with buggy drivers)
                     // in case of hibernate, m_dwLastPause equals 1
                     if (m_dwLastPause == 1 || s.iReloadAfterLongPause > 0 && (GetTickCount64() - m_dwLastPause >= s.iReloadAfterLongPause * 60 * 1000)) {
-                        m_dwReloadPos = m_wndSeekBar.GetPos();
+                        m_rtReloadPos = m_wndSeekBar.GetPos();
                         reloadABRepeat = abRepeat;
                         m_iReloadAudioIdx = GetCurrentAudioTrackIdx();
                         m_iReloadSubIdx = GetCurrentSubtitleTrackIdx();
@@ -15770,11 +15770,11 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
                 abRepeat = pFileData->abRepeat;
             }
 
-            if (m_dwReloadPos > 0) {
-                if (m_dwReloadPos < rtDur) {
-                    rtPos = m_dwReloadPos;
+            if (m_rtReloadPos > 0) {
+                if (m_rtReloadPos < rtDur) {
+                    rtPos = m_rtReloadPos;
                 }
-                m_dwReloadPos = 0;
+                m_rtReloadPos = 0;
             }
             if (reloadABRepeat) {
                 abRepeat = reloadABRepeat;
@@ -19349,7 +19349,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
 
         // save playback position
         if (s.fKeepHistory && !bPendingFileDelete) {
-            if (m_bRememberFilePos && !m_fEndOfStream && m_dwReloadPos == 0 && m_pMS) {
+            if (m_bRememberFilePos && !m_fEndOfStream && m_rtReloadPos == 0 && m_pMS) {
                 REFERENCE_TIME rtNow = 0;
                 m_pMS->GetCurrentPosition(&rtNow);
                 if (rtNow > 0) {
