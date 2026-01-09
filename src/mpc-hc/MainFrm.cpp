@@ -814,7 +814,6 @@ CMainFrame::CMainFrame()
     , m_nLastSkipDirection(0)
     , m_fCustomGraph(false)
     , m_fShockwaveGraph(false)
-    , m_iGraphID(0)
     , m_fFrameSteppingActive(false)
     , m_nStepForwardCount(0)
     , m_rtStepForwardStart(0)
@@ -2954,38 +2953,46 @@ void CMainFrame::GraphEventComplete()
 LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 {
     if (wParam != 0) {
-        return E_INVALIDARG;
-    }
-
-    if (AfxGetMyApp()->m_fClosingState) {
+        ASSERT(false);
         return S_OK;
     }
-    if (lParam != m_iGraphID) {
+    if (AfxGetMyApp()->m_fClosingState) {
         ASSERT(false);
-        return E_INVALIDARG;
+        return S_OK;
+    }
+    if (!m_pME || lParam != (LPARAM)m_pME.p) {
+        ASSERT(false);
+        return S_OK;
+    }
+    if (m_fOpeningAborted || m_eMediaLoadState != MLS::LOADED && m_eMediaLoadState != MLS::LOADING) {
+        ASSERT(false);
+        return S_OK;
     }
 
     lockGraphAccess.Lock();
 
-    if (AfxGetMyApp()->m_fClosingState) {
+    if (AfxGetMyApp()->m_fClosingState || m_fOpeningAborted || m_eMediaLoadState != MLS::LOADED && m_eMediaLoadState != MLS::LOADING) {
+        lockGraphAccess.Unlock();
         ASSERT(false);
         return S_OK;
     }
-    if (lParam != m_iGraphID) {
+    if (!m_pME || lParam != (LPARAM)m_pME.p) {
         lockGraphAccess.Unlock();
         ASSERT(false);
-        return E_INVALIDARG;
+        return S_OK;
     }
 
     HRESULT hr = S_OK;
     LONG evCode = 0;
     LONG_PTR evParam1, evParam2;
-    while (!AfxGetMyApp()->m_fClosingState && m_pME && !m_fOpeningAborted && (GetLoadState() == MLS::LOADED || GetLoadState() == MLS::LOADING) && SUCCEEDED(m_pME->GetEvent(&evCode, &evParam1, &evParam2, 0))) {
+    // there should be WM_GRAPHNOTIFY message for each event, so no need for a loop here
+    if (SUCCEEDED(m_pME->GetEvent(&evCode, &evParam1, &evParam2, 0))) {
 #ifdef _DEBUG
         if (evCode != EC_DVD_CURRENT_HMSF_TIME) {
             TRACE(_T("--> CMainFrame::OnGraphNotify on thread: %lu; id: %ld; event: 0x%08x (%ws)\n"), GetCurrentThreadId(), lParam, evCode, GetEventString(evCode));
         }
 #endif
+
         CString str;
         if (m_fCustomGraph) {
             if (EC_BG_ERROR == evCode) {
@@ -3378,6 +3385,8 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
                 UpdateCachedMediaState();
                 TRACE(_T("Unhandled graph event\n"));
         }
+    } else {
+        ASSERT(false);
     }
 
     if (!AfxGetMyApp()->m_fClosingState) {
@@ -13311,7 +13320,6 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 
     m_fCustomGraph = false;
     m_fShockwaveGraph = false;
-    m_iGraphID++;
 
     const CAppSettings& s = AfxGetAppSettings();
 
@@ -13427,7 +13435,7 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
         throw (UINT)IDS_GRAPH_INTERFACES_ERROR;
     }
 
-    if (FAILED(m_pME->SetNotifyWindow((OAHWND)m_hWnd, WM_GRAPHNOTIFY, (LPARAM)m_iGraphID))) {
+    if (FAILED(m_pME->SetNotifyWindow((OAHWND)m_hWnd, WM_GRAPHNOTIFY, (LPARAM)m_pME.p))) {
         throw (UINT)IDS_GRAPH_TARGET_WND_ERROR;
     }
 
@@ -19320,7 +19328,6 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
         return;
     }
 
-    m_iGraphID++;
     if (m_pME) {
         m_pME->SetNotifyFlags(AM_MEDIAEVENT_NONOTIFY);
         m_pME->SetNotifyWindow(NULL, 0, 0);
@@ -19873,9 +19880,9 @@ LRESULT CMainFrame::OnCurrentChannelInfoUpdated(WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-// ==== Added by CASIMIR666
 void CMainFrame::SetLoadState(MLS eState)
 {
+    ASSERT(eState != MLS::LOADING || m_eMediaLoadState == MLS::CLOSED);
     m_eMediaLoadState = eState;
     SendAPICommand(CMD_STATE, L"%d", static_cast<int>(eState));
     if (eState == MLS::LOADED) {
