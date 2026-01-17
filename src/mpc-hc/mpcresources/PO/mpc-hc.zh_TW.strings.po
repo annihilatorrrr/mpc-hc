@@ -4030,10 +4030,14 @@ msgid "Ready..."
 msgstr "準備…"
 
 msgctxt "IDS_CMD_PNS"
+msgid "/pns \"name\"\tSpecify PnS Frame Adjust Preset to use (for example: /pns \"%s\")"
+msgstr ""
+
+msgctxt "IDS_CMD_PNS_VALUES"
 msgid ""
-"/pns \"name or values\"\tSpecify Video Frame preset name to use or direct "
-"position and zoom values in format \"px,py,zx,zy\""
-msgstr "/pns \"名稱或數值\"\t指定要使用的視訊畫框預設值名稱，或是直接使用 \"px,py,zx,zy\" 格式指定位置與縮放比例值"
+"/pns \"px,py,zx,zy\"\tSpecify direct position and zoom values in the format "
+"\"px,py,zx,zy\""
+msgstr ""
 
 msgctxt "IDS_CMD_ICONASSOC"
 msgid "/iconsassoc\tReassociate format icons"
@@ -4294,8 +4298,8 @@ msgid "/standby\t\tPut the operating system in standby mode after playback"
 msgstr "/standby\t\t播放結束後進入待命模式"
 
 msgctxt "IDS_CMD_HIBERNATE"
-msgid "/hibernate\t\tHibernate operating system after playback"
-msgstr "/hibernate\t\t播放結束後將系統休眠"
+msgid "/hibernate\tHibernate operating system after playback"
+msgstr ""
 
 msgctxt "IDS_CMD_LOGOFF"
 msgid "/logoff\t\tLog off after playback"

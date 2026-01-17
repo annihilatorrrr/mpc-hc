@@ -4088,9 +4088,13 @@ msgid "Ready..."
 msgstr "Valmis..."
 
 msgctxt "IDS_CMD_PNS"
+msgid "/pns \"name\"\tSpecify PnS Frame Adjust Preset to use (for example: /pns \"%s\")"
+msgstr ""
+
+msgctxt "IDS_CMD_PNS_VALUES"
 msgid ""
-"/pns \"name or values\"\tSpecify Video Frame preset name to use or direct "
-"position and zoom values in format \"px,py,zx,zy\""
+"/pns \"px,py,zx,zy\"\tSpecify direct position and zoom values in the format "
+"\"px,py,zx,zy\""
 msgstr ""
 
 msgctxt "IDS_CMD_ICONASSOC"
@@ -4336,7 +4340,7 @@ msgid "/standby\t\tPut the operating system in standby mode after playback"
 msgstr ""
 
 msgctxt "IDS_CMD_HIBERNATE"
-msgid "/hibernate\t\tHibernate operating system after playback"
+msgid "/hibernate\tHibernate operating system after playback"
 msgstr ""
 
 msgctxt "IDS_CMD_LOGOFF"
