@@ -112,7 +112,6 @@ private:
     Logger() {
         const auto& s = AfxGetAppSettings();
         m_file = nullptr;
-        // Check if logging is enabled only during initialization to avoid incomplete logs
         if (s.IsInitialized()) {
             if (s.DebugLogMask & (int)TARGET) {
                 CString savePath;
@@ -148,3 +147,5 @@ private:
 #define YDL_LOG(fmt, ...) MPCHC_LOG2(YDL, fmt, __VA_ARGS__)
 
 #define USE_LOGGER(s) (s.DebugLogMask & (int)LogTargets::PLAYER)
+
+#define FLUSH_LOGGER() _flushall()

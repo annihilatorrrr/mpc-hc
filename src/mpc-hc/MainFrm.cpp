@@ -1289,6 +1289,7 @@ void CMainFrame::OnClose()
 
     if (USE_LOGGER(s)) {
         PLAYER_LOG(_T("CMainFrame::OnClose - closing state has been set"));
+        FLUSH_LOGGER();
     }
 
     __super::OnClose();
@@ -2970,15 +2971,12 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
         return S_OK;
     }
     if (AfxGetMyApp()->m_fClosingState) {
-        ASSERT(false);
         return S_OK;
     }
     if (!m_pME || lParam != (LPARAM)m_pME.p) {
-        ASSERT(false);
         return S_OK;
     }
     if (m_fOpeningAborted || m_eMediaLoadState != MLS::LOADED && m_eMediaLoadState != MLS::LOADING) {
-        ASSERT(false);
         return S_OK;
     }
 
@@ -19378,6 +19376,7 @@ void CMainFrame::ForceCloseProcess()
     MessageBeep(MB_ICONEXCLAMATION);
     if (USE_LOGGER(AfxGetAppSettings())) {
         PLAYER_LOG(_T("CMainFrame::ForceCloseProcess"));
+        FLUSH_LOGGER();
     }
     if (CrashReporter::IsEnabled()) {
         CrashReporter::Disable();
