@@ -3960,7 +3960,8 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_CMD_PNS             "/pns ""name or values""\tSpecify Video Frame preset name to use or direct position and zoom values in format ""px,py,zx,zy"""
+    IDS_CMD_PNS             "/pns ""name""\tSpecify PnS Frame Adjust Preset to use (for example: /pns ""%s"")"
+    IDS_CMD_PNS_VALUES      "/pns ""px,py,zx,zy""\tSpecify direct position and zoom values in the format ""px,py,zx,zy"""
     IDS_CMD_ICONASSOC       "/iconsassoc\tReassociate format icons"
     IDS_CMD_NOFOCUS         "/nofocus\t\tOpen MPC-HC in background"
     IDS_CMD_WEBPORT         "/webport N\tStart web interface on specified port"
@@ -4031,7 +4032,7 @@ BEGIN
     IDS_CMD_CLOSE           "/close\t\tClose the player after playback (only works when used with /play)"
     IDS_CMD_SHUTDOWN        "/shutdown\tShutdown the operating system after playback"
     IDS_CMD_STANDBY         "/standby\t\tPut the operating system in standby mode after playback"
-    IDS_CMD_HIBERNATE       "/hibernate\t\tHibernate operating system after playback"
+    IDS_CMD_HIBERNATE       "/hibernate\tHibernate operating system after playback"
     IDS_CMD_LOGOFF          "/logoff\t\tLog off after playback"
     IDS_CMD_LOCK            "/lock\t\tLock workstation after playback"
     IDS_CMD_MONITOROFF      "/monitoroff\tTurn off the monitor after playback"
