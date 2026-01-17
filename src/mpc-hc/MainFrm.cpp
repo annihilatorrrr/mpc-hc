@@ -1225,11 +1225,10 @@ void CMainFrame::OnDestroy()
 
     if (m_pGraphThread) {
         CAMMsgEvent e;
-        m_pGraphThread->PostThreadMessage(CGraphThread::TM_EXIT, (WPARAM)0, (LPARAM)&e);
-        if (!e.Wait(5000)) {
-            PLAYER_LOG(_T("CMainFrame::OnDestroy - Terminating graph thread due to timeout"));
-            TRACE(_T("ERROR: Must call TerminateThread() on CMainFrame::m_pGraphThread->m_hThread\n"));
+        if (!m_pGraphThread->PostThreadMessage(CGraphThread::TM_EXIT, (WPARAM)0, (LPARAM)&e) || !e.Wait(2000)) {
+            PLAYER_LOG(_T("CMainFrame::OnDestroy - Terminating graph thread due to timeout or failure"));
             TerminateThread(m_pGraphThread->m_hThread, DWORD_ERROR);
+            ASSERT(false);
         }
     }
 
@@ -1944,7 +1943,7 @@ void CMainFrame::OnDisplayChange() // untested, not sure if it's working...
     TRACE(_T("*** CMainFrame::OnDisplayChange()\n"));
 
     if (GetLoadState() == MLS::LOADED) {
-        if (m_pGraphThread) {
+        if (m_pGraphThread && m_bOpenedThroughThread) {
             CAMMsgEvent e;
             m_pGraphThread->PostThreadMessage(CGraphThread::TM_DISPLAY_CHANGE, (WPARAM)0, (LPARAM)&e);
             e.WaitMsg();
@@ -15704,6 +15703,10 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
         OpenCreateGraphObject(pOMD);
         checkAborted();
 
+        if (USE_LOGGER(s)) {
+            PLAYER_LOG(_T("CMainFrame::OpenMediaPrivate - graph object has been created"));
+        }
+
         if (pFileData) {
             OpenFile(pFileData);
         } else if (pDVDData) {
@@ -15723,6 +15726,10 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
 
         if (!m_pGB) {
             throw (UINT)IDS_MAINFRM_88;
+        }
+
+        if (USE_LOGGER(s)) {
+            PLAYER_LOG(_T("CMainFrame::OpenMediaPrivate - filter graph has been created"));
         }
 
         m_pGB->FindInterface(IID_PPV_ARGS(&m_pCAP), TRUE);
@@ -15958,6 +15965,10 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
         if (s.rtShift != 0) {
             SetAudioDelay(s.rtShift);
             s.rtShift = 0;
+        }
+
+        if (USE_LOGGER(s)) {
+            PLAYER_LOG(_T("CMainFrame::OpenMediaPrivate - completed all tasks"));
         }
     } catch (LPCTSTR msg) {
         err = msg;
@@ -19313,13 +19324,26 @@ void CMainFrame::OpenMedia(CAutoPtr<OpenMediaData> pOMD)
 #endif
 
     // initiate graph creation, OpenMediaPrivate() will call OnFilePostOpenmedia()
+
     if (bUseThread) {
-        VERIFY(m_evOpenPrivateFinished.Reset());
-        VERIFY(m_pGraphThread->PostThreadMessage(CGraphThread::TM_OPEN, (WPARAM)0, (LPARAM)pOMD.Detach()));
-        m_bOpenedThroughThread = true;
-    } else {
-        OpenMediaPrivate(pOMD);
+        OpenMediaData* pOMDCopy = pOMD.Detach();
+        if (m_evOpenPrivateFinished.Reset() && m_pGraphThread->PostThreadMessage(CGraphThread::TM_OPEN, (WPARAM)0, (LPARAM)pOMDCopy)) {
+            m_bOpenedThroughThread = true;
+        } else {
+            int lasterror = GetLastError();
+            if (USE_LOGGER(s)) {
+                PLAYER_LOG(_T("CMainFrame::OpenMedia - failed to use graph working thread (error %d)"), lasterror);
+            }
+            bUseThread = false;
+            pOMD.Attach(pOMDCopy);
+            FLUSH_LOGGER();
+            ASSERT(false);
+        }
+    }
+
+    if (!bUseThread) {
         m_bOpenedThroughThread = false;
+        OpenMediaPrivate(pOMD);
     }
 }
 
