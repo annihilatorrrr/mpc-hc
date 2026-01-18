@@ -22050,16 +22050,20 @@ void CMainFrame::UpdateDXVAStatus()
 {
     CString DXVAInfo;
     // We only support getting info from LAV Video Decoder is that is what will be used 99% of the time
-    if (CComQIPtr<ILAVVideoStatus> pLAVVideoStatus = FindFilter(GUID_LAVVideo, m_pGB)) {
-        const LPCWSTR decoderName = pLAVVideoStatus->GetActiveDecoderName();
-        if (decoderName == nullptr || wcscmp(decoderName, L"avcodec") == 0 || wcscmp(decoderName, L"wmv9 mft") == 0 || wcscmp(decoderName, L"msdk mvc") == 0) {
-            DXVAInfo = _T("H/W Decoder  : None");
-        } else {
-            m_bUsingDXVA = true;
-            m_HWAccelType = CFGFilterLAVVideo::GetUserFriendlyDecoderName(decoderName);
-            DXVAInfo.Format(_T("H/W Decoder  : %s"), m_HWAccelType);
+    IBaseFilter* pBF = FindFilter(GUID_LAVVideo, m_pGB);
+    if (pBF) {
+        if (CComQIPtr<ILAVVideoStatus> pLAVVideoStatus = pBF) {
+            const LPCWSTR decoderName = pLAVVideoStatus->GetActiveDecoderName();
+            if (decoderName == nullptr || wcscmp(decoderName, L"avcodec") == 0 || wcscmp(decoderName, L"wmv9 mft") == 0 || wcscmp(decoderName, L"msdk mvc") == 0) {
+                DXVAInfo = _T("H/W Decoder  : None");
+            } else {
+                m_bUsingDXVA = true;
+                m_HWAccelType = CFGFilterLAVVideo::GetUserFriendlyDecoderName(decoderName);
+                DXVAInfo.Format(_T("H/W Decoder  : %s"), m_HWAccelType);
+            }
         }
-    } else {
+    }
+    if (DXVAInfo.IsEmpty()) {
         DXVAInfo = _T("H/W Decoder  : None / Unknown");
     }
     GetRenderersData()->m_strDXVAInfo = DXVAInfo;
