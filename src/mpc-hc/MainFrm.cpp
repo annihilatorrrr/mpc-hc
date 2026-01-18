@@ -1123,7 +1123,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
     m_Lcd.SetVolume(std::max(1, s.nVolume));
 
     m_pGraphThread = (CGraphThread*)AfxBeginThread(RUNTIME_CLASS(CGraphThread));
-
     if (m_pGraphThread) {
         m_pGraphThread->SetMainFrame(this);
     }
@@ -1223,7 +1222,7 @@ void CMainFrame::OnDestroy()
         VERIFY(m_pDebugShaders->DestroyWindow());
     }
 
-    if (m_pGraphThread) {
+    if (m_pGraphThread && m_pGraphThread->m_hThread) {
         CAMMsgEvent e;
         if (!m_pGraphThread->PostThreadMessage(CGraphThread::TM_EXIT, (WPARAM)0, (LPARAM)&e) || !e.Wait(2000)) {
             PLAYER_LOG(_T("CMainFrame::OnDestroy - Terminating graph thread due to timeout or failure"));
@@ -1943,7 +1942,7 @@ void CMainFrame::OnDisplayChange() // untested, not sure if it's working...
     TRACE(_T("*** CMainFrame::OnDisplayChange()\n"));
 
     if (GetLoadState() == MLS::LOADED) {
-        if (m_pGraphThread && m_bOpenedThroughThread) {
+        if (m_bOpenedThroughThread && m_pGraphThread && m_pGraphThread->m_hThread) {
             CAMMsgEvent e;
             m_pGraphThread->PostThreadMessage(CGraphThread::TM_DISPLAY_CHANGE, (WPARAM)0, (LPARAM)&e);
             e.WaitMsg();
@@ -2999,11 +2998,11 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
     if (SUCCEEDED(m_pME->GetEvent(&evCode, &evParam1, &evParam2, 0))) {
 #ifdef _DEBUG
         if (evCode != EC_DVD_CURRENT_HMSF_TIME) {
-            TRACE(_T("--> CMainFrame::OnGraphNotify (thread %lu)(graph %ld)(loadstate %d) event: %ws\n"), GetCurrentThreadId(), lParam, m_eMediaLoadState, GetEventString(evCode));
+            TRACE(_T("--> CMainFrame::OnGraphNotify (thread %lu)(graph %u)(loadstate %d) event: %ws\n"), GetCurrentThreadId(), (unsigned int)(lParam & 0xffff), m_eMediaLoadState, GetEventString(evCode));
         }
 #else
         if (evCode != EC_DVD_CURRENT_HMSF_TIME && USE_LOGGER(AfxGetAppSettings())) {
-            PLAYER_LOG(_T("CMainFrame::OnGraphNotify (thread %lu)(graph %ld)(loadstate %d) event: %ws"), GetCurrentThreadId(), lParam, m_eMediaLoadState, GetEventString(evCode));
+            PLAYER_LOG(_T("CMainFrame::OnGraphNotify (thread %lu)(graph %u)(loadstate %d) event: %ws"), GetCurrentThreadId(), (unsigned int)(lParam & 0xffff), m_eMediaLoadState, GetEventString(evCode));
         }
 #endif
 
@@ -3423,7 +3422,7 @@ LRESULT CMainFrame::OnResetDevice(WPARAM wParam, LPARAM lParam)
         }
     }
 
-    if (m_bOpenedThroughThread) {
+    if (m_bOpenedThroughThread && m_pGraphThread && m_pGraphThread->m_hThread) {
         CAMMsgEvent e;
         m_pGraphThread->PostThreadMessage(CGraphThread::TM_RESET, (WPARAM)0, (LPARAM)&e);
         e.WaitMsg();
@@ -15703,10 +15702,6 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
         OpenCreateGraphObject(pOMD);
         checkAborted();
 
-        if (USE_LOGGER(s)) {
-            PLAYER_LOG(_T("CMainFrame::OpenMediaPrivate - graph object has been created"));
-        }
-
         if (pFileData) {
             OpenFile(pFileData);
         } else if (pDVDData) {
@@ -15966,10 +15961,6 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
             SetAudioDelay(s.rtShift);
             s.rtShift = 0;
         }
-
-        if (USE_LOGGER(s)) {
-            PLAYER_LOG(_T("CMainFrame::OpenMediaPrivate - completed all tasks"));
-        }
     } catch (LPCTSTR msg) {
         err = msg;
     } catch (CString& msg) {
@@ -15991,7 +15982,11 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
         ASSERT(lp);
         return std::make_pair(wp, lp);
     };
+
     if (err.IsEmpty()) {
+        if (USE_LOGGER(s)) {
+            PLAYER_LOG(_T("CMainFrame::OpenMediaPrivate - completed"));
+        }
         auto args = getMessageArgs();
         if (!m_bOpenedThroughThread) {
             ASSERT(GetCurrentThreadId() == AfxGetApp()->m_nThreadID);
@@ -16000,6 +15995,9 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
             PostMessage(WM_POSTOPEN, args.first, args.second);
         }
     } else if (!m_fOpeningAborted) {
+        if (USE_LOGGER(s)) {
+            PLAYER_LOG(_T("CMainFrame::OpenMediaPrivate - failure: %s"), err);
+        }
         auto args = getMessageArgs();
         if (!m_bOpenedThroughThread) {
             ASSERT(GetCurrentThreadId() == AfxGetApp()->m_nThreadID);
@@ -16009,6 +16007,9 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
         }
     } else {
         m_bOpenMediaActive = false;
+        if (USE_LOGGER(s)) {
+            PLAYER_LOG(_T("CMainFrame::OpenMediaPrivate - aborted"));
+        }
     }
 
     return err.IsEmpty();
@@ -19283,7 +19284,16 @@ void CMainFrame::OpenMedia(CAutoPtr<OpenMediaData> pOMD)
 
     // use the graph thread only for some media types
     bool bDirectShow = pFileData && !pFileData->fns.IsEmpty() && s.m_Formats.GetEngine(pFileData->fns.GetHead()) == DirectShow;
-    bool bUseThread = m_pGraphThread && s.fEnableWorkerThreadForOpening && (bDirectShow || !pFileData) && (s.iDefaultCaptureDevice == 1 || !pDeviceData);
+    bool bUseThread = m_pGraphThread && s.fEnableWorkerThreadForOpening && (bDirectShow || !pFileData) && (s.iDefaultCaptureDevice == 1 || !pDeviceData);  
+    if (bUseThread && !m_pGraphThread->m_hThread) {
+        if (USE_LOGGER(s)) {
+            PLAYER_LOG(_T("CMainFrame::OpenMedia - graph thread init error (0x%08X) - proceeding without worker thread"), m_pGraphThread->hr_coinit);
+        }
+        bUseThread = false;
+        m_pGraphThread = nullptr;
+        ASSERT(false);
+    }
+
     bool wasMaximized = IsZoomed();
     // create d3dfs window if launching in fullscreen and d3dfs is enabled
     if (s.IsD3DFullscreen() && m_fStartInD3DFullscreen) {
@@ -19324,7 +19334,6 @@ void CMainFrame::OpenMedia(CAutoPtr<OpenMediaData> pOMD)
 #endif
 
     // initiate graph creation, OpenMediaPrivate() will call OnFilePostOpenmedia()
-
     if (bUseThread) {
         OpenMediaData* pOMDCopy = pOMD.Detach();
         if (m_evOpenPrivateFinished.Reset() && m_pGraphThread->PostThreadMessage(CGraphThread::TM_OPEN, (WPARAM)0, (LPARAM)pOMDCopy)) {
@@ -19335,6 +19344,7 @@ void CMainFrame::OpenMedia(CAutoPtr<OpenMediaData> pOMD)
                 PLAYER_LOG(_T("CMainFrame::OpenMedia - failed to use graph working thread (error %d)"), lasterror);
             }
             bUseThread = false;
+            m_pGraphThread = nullptr;
             pOMD.Attach(pOMDCopy);
             FLUSH_LOGGER();
             ASSERT(false);
@@ -19697,7 +19707,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
     m_bSettingUpMenus = false;
 
     // initiate graph destruction
-    if (m_pGraphThread && m_bOpenedThroughThread && !bGraphTerminated) {
+    if (m_bOpenedThroughThread && m_pGraphThread && m_pGraphThread->m_hThread && !bGraphTerminated) {
         // either opening or closing has to be blocked to prevent reentering them, closing is the better choice
         VERIFY(m_evClosePrivateFinished.Reset());
         VERIFY(m_pGraphThread->PostThreadMessage(CGraphThread::TM_CLOSE, (WPARAM)0, (LPARAM)0));
@@ -19802,6 +19812,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
     if (USE_LOGGER(s)) {
         PLAYER_LOG(_T("CMainFrame::CloseMedia - completed"));
     }
+    FLUSH_LOGGER();
 
     TRACE(_T("Close media completed\n"));
 }
@@ -19818,7 +19829,7 @@ void CMainFrame::StartTunerScan(CAutoPtr<TunerScanData> pTSD)
     OpenSetupWindowTitle();
     SendNowPlayingToSkype();
 
-    if (m_pGraphThread) {
+    if (m_pGraphThread && m_pGraphThread->m_hThread) {
         m_pGraphThread->PostThreadMessage(CGraphThread::TM_TUNER_SCAN, (WPARAM)0, (LPARAM)pTSD.Detach());
     } else {
         DoTunerScan(pTSD);
