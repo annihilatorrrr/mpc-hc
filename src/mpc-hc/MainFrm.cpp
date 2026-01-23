@@ -2007,11 +2007,12 @@ LRESULT CMainFrame::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 
 void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
 {
-    // Only stop screensaver if video playing; allow for audio only
-    if ((!m_fAudioOnly && !m_fEndOfStream && GetLoadState() == MLS::LOADED && GetMediaState() == State_Running)
-            && (((nID & 0xFFF0) == SC_SCREENSAVE) || ((nID & 0xFFF0) == SC_MONITORPOWER))) {
-        TRACE(_T("SC_SCREENSAVE, nID = %u, lParam = %d\n"), nID, lParam);
-        return;
+    if ((nID & 0xFFF0) == SC_SCREENSAVE || (nID & 0xFFF0) == SC_MONITORPOWER) {
+        // Only stop screensaver if video playing
+        if (!m_fAudioOnly && !m_fEndOfStream && GetLoadState() == MLS::LOADED && GetMediaState() == State_Running) {
+            TRACE(_T("SC_SCREENSAVE, nID = %u, lParam = %d\n"), nID, lParam);
+            return;
+        }
     }
 
     __super::OnSysCommand(nID, lParam);
