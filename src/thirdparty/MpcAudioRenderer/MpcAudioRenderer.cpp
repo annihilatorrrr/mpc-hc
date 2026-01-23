@@ -2818,6 +2818,9 @@ HRESULT CMpcAudioRenderer::RenderWasapiBuffer()
 
 	CAutoLock cRenderLock(&m_csRender);
 
+	CheckPointer(m_pRenderClient, E_FAIL);
+	CheckPointer(m_pWaveFormatExOutput, E_FAIL);
+
 	HRESULT hr = S_OK;
 
 	UINT32 numFramesPadding = 0;
