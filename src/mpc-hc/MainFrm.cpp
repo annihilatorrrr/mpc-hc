@@ -16035,6 +16035,7 @@ void CMainFrame::CloseMediaPrivate()
     m_rtDurationOverride = -1;
     m_bUsingDXVA = false;
     m_audioTrackCount = 0;
+
     if (m_pDVBState) {
         m_pDVBState->Join();
         m_pDVBState = nullptr;
@@ -16049,8 +16050,13 @@ void CMainFrame::CloseMediaPrivate()
     }
     m_pSubClock.Release();
 
+    m_OSD.Stop();
+
     if (m_pVW && !m_pMVRS) {
         m_pVW->put_Owner(NULL);
+    }
+    if (m_pVW_preview) {
+        m_pVW_preview->put_Owner(NULL);
     }
 
     m_bIsMPCVRExclusiveMode = false;
@@ -16058,7 +16064,6 @@ void CMainFrame::CloseMediaPrivate()
     ULONGLONG tc2 = GetTickCount64();
 
     // IMPORTANT: IVMRSurfaceAllocatorNotify/IVMRSurfaceAllocatorNotify9 has to be released before the VMR/VMR9, otherwise it will crash in Release()
-    m_OSD.Stop();
     m_pMVRFG.Release();
     m_pMVRSR.Release();
     m_pMVRS.Release();
