@@ -2662,11 +2662,7 @@ STDMETHODIMP CSyncAP::CreateRenderer(IUnknown** ppRenderer)
         CComPtr<IMFVideoRenderer> pMFVR;
         CComQIPtr<IMFGetService, &__uuidof(IMFGetService)> pMFGS = pBF;
         CComQIPtr<IEVRFilterConfig> pConfig = pBF;
-        if (SUCCEEDED(hr)) {
-            if (FAILED(pConfig->SetNumberOfStreams(3))) { // TODO - maybe need other number of input stream ...
-                break;
-            }
-        }
+        pConfig->SetNumberOfStreams(3);
 
         hr = pMFGS->GetService(MR_VIDEO_RENDER_SERVICE, IID_PPV_ARGS(&pMFVR));
 
