@@ -19287,7 +19287,7 @@ void CMainFrame::OpenMedia(CAutoPtr<OpenMediaData> pOMD)
     // use the graph thread only for some media types
     bool bDirectShow = pFileData && !pFileData->fns.IsEmpty() && s.m_Formats.GetEngine(pFileData->fns.GetHead()) == DirectShow;
     bool bUseThread = m_pGraphThread && s.fEnableWorkerThreadForOpening && (bDirectShow || !pFileData) && (s.iDefaultCaptureDevice == 1 || !pDeviceData);  
-    if (bUseThread && !m_pGraphThread->m_hThread) {
+    if (bUseThread && (!m_pGraphThread->m_hThread || m_pGraphThread->hr_coinit != S_OK)) {
         if (USE_LOGGER(s)) {
             PLAYER_LOG(_T("CMainFrame::OpenMedia - graph thread init error (0x%08X) - proceeding without worker thread"), m_pGraphThread->hr_coinit);
         }
