@@ -60,8 +60,8 @@
 
 class CNullAudioRenderer;
 
-CFGManager::CFGManager(LPCTSTR pName, LPUNKNOWN pUnk, HWND hWnd, bool IsPreview)
-    : CUnknown(pName, pUnk)
+CFGManager::CFGManager(LPCWSTR pClassName, LPCWSTR pInputFileURL, HWND hWnd, bool IsPreview)
+    : CUnknown(pClassName, nullptr)
     , m_dwRegister(0)
 	, m_hWnd(hWnd)
 	, m_bIsPreview(IsPreview)
@@ -75,6 +75,7 @@ CFGManager::CFGManager(LPCTSTR pName, LPUNKNOWN pUnk, HWND hWnd, bool IsPreview)
     , m_aborted(false)
     , m_useragent()
     , m_referrer()
+    , m_input(pInputFileURL)
 {
     m_pUnkInner.CoCreateInstance(CLSID_FilterGraph, GetOwner());
     m_pFM.CoCreateInstance(CLSID_FilterMapper2);
@@ -1974,8 +1975,17 @@ void CFGManagerCustom::InsertOtherInternalSourcefilters(bool IsPreview)
     const bool* src = s.SrcFilters;
     CFGFilter* pFGF;
 
+    bool isurl = PathUtils::IsURL(m_input);
+    bool isfile = !isurl && !m_input.IsEmpty();
+    CString ext;
+    bool willuselav = false; // some of the most common ext that certainly won't use any of the filters below
+    if (isfile) {
+        ext = CPath(m_input).GetExtension().MakeLower();
+        willuselav = (ext == L".mkv") || (ext == L".mp4") || (ext == L".avi") || (ext == L".mp3") || (ext == L".m4a") || (ext == L".ogg") || (ext == L".flac");
+    }
+
 #if INTERNAL_SOURCEFILTER_RFS
-    if (src[SRC_RFS] || IsPreview) {
+    if ((src[SRC_RFS] || IsPreview) && isfile && !willuselav) {
         pFGF = DEBUG_NEW CFGFilterInternal<CRARFileSource>();
         pFGF->m_chkbytes.AddTail(_T("0,7,,526172211A0700"));   // rar4 signature
         pFGF->m_chkbytes.AddTail(_T("0,8,,526172211A070100")); // rar5 signature
@@ -1985,7 +1995,7 @@ void CFGManagerCustom::InsertOtherInternalSourcefilters(bool IsPreview)
 #endif
 
 #if INTERNAL_SOURCEFILTER_CDDA
-    if (src[SRC_CDDA] && !IsPreview) {
+    if (src[SRC_CDDA] && !IsPreview && isfile && (ext == L".cda")) {
         pFGF = DEBUG_NEW CFGFilterInternal<CCDDAReader>();
         pFGF->m_extensions.AddTail(_T(".cda"));
         m_source.AddTail(pFGF);
@@ -1993,7 +2003,7 @@ void CFGManagerCustom::InsertOtherInternalSourcefilters(bool IsPreview)
 #endif
 
 #if INTERNAL_SOURCEFILTER_CDXA
-    if (src[SRC_CDXA] || IsPreview) {
+    if ((src[SRC_CDXA] || IsPreview) && isfile && !willuselav) {
         pFGF = DEBUG_NEW CFGFilterInternal<CCDXAReader>();
         pFGF->m_chkbytes.AddTail(_T("0,4,,52494646,8,4,,43445841"));
         m_source.AddTail(pFGF);
@@ -2001,7 +2011,7 @@ void CFGManagerCustom::InsertOtherInternalSourcefilters(bool IsPreview)
 #endif
 
 #if INTERNAL_SOURCEFILTER_VTS
-    if (src[SRC_VTS] || IsPreview) {
+    if ((src[SRC_VTS] || IsPreview)  && isfile && !willuselav) {
         pFGF = DEBUG_NEW CFGFilterInternal<CVTSReader>();
         pFGF->m_chkbytes.AddTail(_T("0,12,,445644564944454F2D565453"));
         m_source.AddTail(pFGF);
@@ -2009,22 +2019,22 @@ void CFGManagerCustom::InsertOtherInternalSourcefilters(bool IsPreview)
 #endif
 
 #if INTERNAL_SOURCEFILTER_DSM
-    if (src[SRC_DSM] || IsPreview) {
-        pFGF = DEBUG_NEW CFGFilterInternal<CDSMSourceFilter>();
-        pFGF->m_chkbytes.AddTail(_T("0,4,,44534D53"));
-        m_source.AddTail(pFGF);
-    }
-#endif
+    if (isfile && (ext == L".dsm" || ext == L".dsv" || ext == L".dsa" || ext == L".dss")) {
+        if (src[SRC_DSM] || IsPreview) {
+            pFGF = DEBUG_NEW CFGFilterInternal<CDSMSourceFilter>();
+            pFGF->m_chkbytes.AddTail(_T("0,4,,44534D53"));
+            m_source.AddTail(pFGF);
+        }
 
-#if INTERNAL_SOURCEFILTER_DSM
-    if (src[SRC_DSM]) {
-        pFGF = DEBUG_NEW CFGFilterInternal<CDSMSplitterFilter>(DSMSplitterName, MERIT64_ABOVE_DSHOW);
-    } else {
-        pFGF = DEBUG_NEW CFGFilterInternal<CDSMSplitterFilter>(LowMerit(DSMSplitterName), MERIT64_DO_USE);
+        if (src[SRC_DSM]) {
+            pFGF = DEBUG_NEW CFGFilterInternal<CDSMSplitterFilter>(DSMSplitterName, MERIT64_ABOVE_DSHOW);
+        } else {
+            pFGF = DEBUG_NEW CFGFilterInternal<CDSMSplitterFilter>(LowMerit(DSMSplitterName), MERIT64_DO_USE);
+        }
+        pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_DirectShowMedia);
+        pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+        m_transform.AddTail(pFGF);
     }
-    pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_DirectShowMedia);
-    pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-    m_transform.AddTail(pFGF);
 #endif
 }
 
@@ -2659,8 +2669,8 @@ void CFGManagerCustom::InsertBroadcomDecoder()
 //  CFGManagerCustom
 //
 
-CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, HWND hWnd, bool IsPreview)
-    : CFGManager(pName, pUnk, hWnd, IsPreview)
+CFGManagerCustom::CFGManagerCustom(LPCWSTR pClassName, LPCWSTR pInputFileURL, HWND hWnd, bool IsPreview)
+    : CFGManager(pClassName, pInputFileURL, hWnd, IsPreview)
 {
     const CAppSettings& s = AfxGetAppSettings();
 
@@ -2764,8 +2774,8 @@ STDMETHODIMP CFGManagerCustom::AddFilter(IBaseFilter* pBF, LPCWSTR pName)
 //  CFGManagerPlayer
 //
 
-CFGManagerPlayer::CFGManagerPlayer(LPCTSTR pName, LPUNKNOWN pUnk, HWND hWnd, bool IsPreview)
-    : CFGManagerCustom(pName, pUnk, hWnd, IsPreview)
+CFGManagerPlayer::CFGManagerPlayer(LPCWSTR pClassName, LPCWSTR pInputFileURL, HWND hWnd, bool IsPreview)
+    : CFGManagerCustom(pClassName, pInputFileURL, hWnd, IsPreview)
     , m_hWnd(hWnd)
 {
     TRACE(_T("CFGManagerPlayer::CFGManagerPlayer on thread: %lu\n"), GetCurrentThreadId());
@@ -2962,8 +2972,8 @@ STDMETHODIMP CFGManagerPlayer::ConnectDirect(IPin* pPinOut, IPin* pPinIn, const 
 // CFGManagerDVD
 //
 
-CFGManagerDVD::CFGManagerDVD(LPCTSTR pName, LPUNKNOWN pUnk, HWND hWnd, bool IsPreview)
-    : CFGManagerPlayer(pName, pUnk, hWnd, IsPreview)
+CFGManagerDVD::CFGManagerDVD(LPCTSTR pInputFileURL, HWND hWnd, bool IsPreview)
+    : CFGManagerPlayer(L"CFGManagerDVD", pInputFileURL, hWnd, IsPreview)
 {
     const CAppSettings& s = AfxGetAppSettings();
 
@@ -3049,8 +3059,8 @@ STDMETHODIMP CFGManagerDVD::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpc
 // CFGManagerCapture
 //
 
-CFGManagerCapture::CFGManagerCapture(LPCTSTR pName, LPUNKNOWN pUnk, HWND hWnd)
-    : CFGManagerPlayer(pName, pUnk, hWnd)
+CFGManagerCapture::CFGManagerCapture(HWND hWnd)
+    : CFGManagerPlayer(_T("CFGManagerCapture"), L"", hWnd)
 {
     const CAppSettings& s = AfxGetAppSettings();
 
@@ -3062,16 +3072,6 @@ CFGManagerCapture::CFGManagerCapture(LPCTSTR pName, LPUNKNOWN pUnk, HWND hWnd)
     }
 
     m_bIsCapture = True;
-}
-
-//
-// CFGManagerMuxer
-//
-
-CFGManagerMuxer::CFGManagerMuxer(LPCTSTR pName, LPUNKNOWN pUnk)
-    : CFGManagerCustom(pName, pUnk)
-{
-    m_source.AddTail(DEBUG_NEW CFGFilterInternal<CSubtitleSourceASS>());
 }
 
 //

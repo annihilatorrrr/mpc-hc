@@ -13364,35 +13364,27 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 
     m_pGB_preview = nullptr;
     m_bUseSeekPreview = s.fUseSeekbarHover && s.fSeekPreview && m_wndPreView && ::IsWindow(m_wndPreView.m_hWnd) && !(s.nCLSwitches & CLSW_THUMBNAILS);
-    if (m_bUseSeekPreview) {
-#if 1
-        if (auto pOpenDVDData = dynamic_cast<OpenDVDData*>(pOMD)) {
-            // preview does not always work good with DVD even when loaded from hdd
-            m_bUseSeekPreview = false;
-        } else
-#endif
-        if (OpenFileData* pFileData = dynamic_cast<OpenFileData*>(pOMD)) {
-            CString fn = pFileData->fns.GetHead();
-            if (fn.IsEmpty()) {
+
+    if (auto pOpenFileData = dynamic_cast<OpenFileData*>(pOMD)) {
+        CString firstfilename = pOpenFileData->fns.GetHead();
+        if (firstfilename.IsEmpty()) {
+           throw (UINT)IDS_MAINFRM_81;
+        } else {
+            // disable seek preview for: streaming data, audio files, files on optical disc
+            if (PathUtils::IsURL(firstfilename)) {
                 m_bUseSeekPreview = false;
             } else {
-                CString ext = CPath(fn).GetExtension().MakeLower();
-                if (((fn.Find(L"://") >= 0) || IsAudioFileExt(ext) || ext == L".avs" || PathIsOnOpticalDisc(fn))) {
-                    // disable seek preview for: streaming data, audio files, files on optical disc
+                CString ext = CPath(firstfilename).GetExtension().MakeLower();
+                if (IsAudioFileExt(ext) || ext == L".avs" || PathIsOnOpticalDisc(firstfilename)) {
                     m_bUseSeekPreview = false;
                 }
             }
         }
-    }
 
-    if (auto pOpenFileData = dynamic_cast<OpenFileData*>(pOMD)) {
-        engine_t engine = s.m_Formats.GetEngine(pOpenFileData->fns.GetHead());
-
-        HRESULT hr = E_FAIL;
-        CComPtr<IUnknown> pUnk;
-
+        engine_t engine = s.m_Formats.GetEngine(firstfilename);
         if (engine == ShockWave) {
-            pUnk = (IUnknown*)(INonDelegatingUnknown*)DEBUG_NEW DSObjects::CShockwaveGraph(m_pVideoWnd->m_hWnd, hr);
+            HRESULT hr = E_FAIL;
+            CComPtr<IUnknown> pUnk = (IUnknown*)(INonDelegatingUnknown*)DEBUG_NEW DSObjects::CShockwaveGraph(m_pVideoWnd->m_hWnd, hr);
             if (!pUnk) {
                 throw (UINT)IDS_AG_OUT_OF_MEMORY;
             }
@@ -13409,7 +13401,7 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
         m_fCustomGraph = m_fShockwaveGraph;
 
         if (!m_fCustomGraph) {
-            CFGManagerPlayer* fgm = DEBUG_NEW CFGManagerPlayer(_T("CFGManagerPlayer"), nullptr, m_pVideoWnd->m_hWnd);
+            CFGManagerPlayer* fgm = DEBUG_NEW CFGManagerPlayer(_T("CFGManagerPlayer"), firstfilename, m_pVideoWnd->m_hWnd);
             if (!pOpenFileData->useragent.IsEmpty()) {
                 fgm->SetUserAgent(pOpenFileData->useragent);
             }
@@ -13420,22 +13412,29 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 
             if (m_pGB && m_bUseSeekPreview) {
                 // build graph for preview
-                m_pGB_preview = DEBUG_NEW CFGManagerPlayer(L"CFGManagerPlayer", nullptr, m_wndPreView.GetVideoHWND(), true);
+                m_pGB_preview = DEBUG_NEW CFGManagerPlayer(L"CFGManagerPlayer", firstfilename, m_wndPreView.GetVideoHWND(), true);
             }
         }
     } else if (auto pOpenDVDData = dynamic_cast<OpenDVDData*>(pOMD)) {
-        m_pGB = DEBUG_NEW CFGManagerDVD(_T("CFGManagerDVD"), nullptr, m_pVideoWnd->m_hWnd);
-
+        CString dvdpath = pOpenDVDData->path;
+        m_pGB = DEBUG_NEW CFGManagerDVD(dvdpath, m_pVideoWnd->m_hWnd, false);
+#if 1
+        // preview does not always work good with DVD even when loaded from hdd
+        m_bUseSeekPreview = false;
+#else
         if (m_bUseSeekPreview) {
-            if (!PathIsOnOpticalDisc(pOpenDVDData->path)) {
-                m_pGB_preview = DEBUG_NEW CFGManagerDVD(L"CFGManagerDVD", nullptr, m_wndPreView.GetVideoHWND(), true);
+            if (!PathIsOnOpticalDisc(dvdpath)) {
+                m_pGB_preview = DEBUG_NEW CFGManagerDVD(dvdpath, m_wndPreView.GetVideoHWND(), true);
+            } else {
+                m_bUseSeekPreview = false;
             }
         }
+#endif
     } else if (auto pOpenDeviceData = dynamic_cast<OpenDeviceData*>(pOMD)) {
         if (s.iDefaultCaptureDevice == 1) {
-            m_pGB = DEBUG_NEW CFGManagerBDA(_T("CFGManagerBDA"), nullptr, m_pVideoWnd->m_hWnd);
+            m_pGB = DEBUG_NEW CFGManagerBDA(m_pVideoWnd->m_hWnd);
         } else {
-            m_pGB = DEBUG_NEW CFGManagerCapture(_T("CFGManagerCapture"), nullptr, m_pVideoWnd->m_hWnd);
+            m_pGB = DEBUG_NEW CFGManagerCapture(m_pVideoWnd->m_hWnd);
         }
     }
 
@@ -13468,9 +13467,7 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
         //m_pFS_preview = m_pGB_preview;
     }
 
-    if (!(m_pMC && m_pME && m_pMS)
-            || !(m_pVW && m_pBV)
-            || !(m_pBA)) {
+    if (!(m_pMC && m_pME && m_pMS) || !(m_pVW && m_pBV) || !(m_pBA)) {
         throw (UINT)IDS_GRAPH_INTERFACES_ERROR;
     }
 
