@@ -19460,12 +19460,19 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
         PLAYER_LOG(_T("CMainFrame::CloseMedia (thread %lu) - starting close"), GetCurrentThreadId());
     }
 
+    CAutoLock ga(&lockGraphAccess);
+
     if (m_pME) {
         m_pME->SetNotifyFlags(AM_MEDIAEVENT_NONOTIFY);
         m_pME->SetNotifyWindow(NULL, 0, 0);
+        m_pME.Release();
     }
 
-    CAutoLock ga(&lockGraphAccess);
+    MSG msg;
+    // purge possible queued graph events
+    while (PeekMessage(&msg, nullptr, WM_GRAPHNOTIFY, WM_GRAPHNOTIFY, PM_REMOVE)) {
+        TRACE(L"Purged queued graph event\n");
+    }
 
     m_media_trans_control.close();
 
@@ -19586,7 +19593,6 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
 
         if (m_bOpenedThroughThread && m_pGraphThread && m_pGraphThread->m_hThread) {
             BeginWaitCursor();
-            MSG msg;
             DWORD dwWait;
             HANDLE handle = m_evOpenPrivateFinished;
             ULONGLONG waitdur = 6000ULL;
@@ -19594,6 +19600,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
             bool killprocess = true;
             bool processmsg = true;
             bool extendedwait = false;
+            int pm = 0;
             while (processmsg) {
                 dwWait = MsgWaitForMultipleObjects(1, &handle, FALSE, waitdur, QS_POSTMESSAGE | QS_SENDMESSAGE);
                 switch (dwWait) {
@@ -19605,12 +19612,18 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
                         break;
                     case WAIT_OBJECT_0 + 1:
                         // we have a message - peek and dispatch it
-                        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+                        pm = 0;
+                        while ((pm++ < 3) && PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
                             if (msg.message == WM_QUIT) {
                                 processmsg = false;
+                            } else if (msg.message == 0) {
+                                // ignore
                             } else if (msg.message == WM_GRAPHNOTIFY) {
                                 // ignore
                             } else {
+                                if (msg.message != WM_PAINT && msg.message != WM_KEYUP && msg.message != WM_MOUSEMOVE && msg.message != EVENT_OBJECT_VALUECHANGE && msg.message != EVENT_OBJECT_PARENTCHANGE && msg.message != 0xc03e) {
+                                    TRACE(_T("Dispatch WM during graph abort: msg=0x%x wp=%u lp=%ld\n"), msg.message, msg.wParam, msg.lParam);
+                                }
                                 TranslateMessage(&msg);
                                 DispatchMessage(&msg);
                             }
@@ -19631,16 +19644,16 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
                         if (extendedwait || m_fFullScreen || s.hMasterWnd) {
                             processmsg = false;
                         } else {
-                            CString msg;
+                            CString timeoutmsg;
                             if (s.iDSVideoRendererType == VIDRNDT_DS_MADVR) {
-                                msg = L"Timeout while aborting filter graph creation.\n\nIf files load slowly with MadVR, you should change dithering in Madvr settings (Error Diffusion is broken on AMD GPU).\n\nClick YES to terminate player process. Click NO to wait longer (up to 15 seconds).";
+                                timeoutmsg = L"Timeout while aborting filter graph creation.\n\nIf files load slowly with MadVR, you should change dithering in Madvr settings (Error Diffusion is broken on AMD GPU).\n\nClick YES to terminate player process. Click NO to wait longer (up to 15 seconds).";
                             } else {
-                                msg = L"Timeout while aborting filter graph creation.\n\nClick YES to terminate player process. Click NO to wait longer (up to 15 seconds).";
+                                timeoutmsg = L"Timeout while aborting filter graph creation.\n\nClick YES to terminate player process. Click NO to wait longer (up to 15 seconds).";
                             }
                             if (USE_LOGGER(s)) {
                                 PLAYER_LOG(_T("CMainFrame::CloseMedia - Timeout when aborting filter graph creation"));
                             }
-                            if (IDYES == AfxMessageBox(msg, MB_ICONEXCLAMATION | MB_YESNO, 0)) {
+                            if (IDYES == AfxMessageBox(timeoutmsg, MB_ICONEXCLAMATION | MB_YESNO, 0)) {
                                 processmsg = false;
                             } else {
                                 extendedwait = true;
@@ -19664,7 +19677,6 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
             ForceCloseProcess();
         }
 
-        MSG msg;
         // purge possible queued OnFilePostOpenmedia()
         if (PeekMessage(&msg, m_hWnd, WM_POSTOPEN, WM_POSTOPEN, PM_REMOVE | PM_NOYIELD)) {
             free((OpenMediaData*)msg.lParam);
@@ -19719,6 +19731,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
         bool killprocess = true;
         bool processmsg = true;
         bool extendedwait = false;
+        int pm = 0;
         while (processmsg) {
             dwWait = MsgWaitForMultipleObjects(1, &handle, FALSE, waitdur, QS_POSTMESSAGE | QS_SENDMESSAGE);
             switch (dwWait) {
@@ -19727,14 +19740,18 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
                     killprocess = false;
                     break;
                 case WAIT_OBJECT_0 + 1:
-                    MSG msg;
-                    if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                    pm = 0;
+                    while ((pm++ < 3) && PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
                         if (msg.message == WM_QUIT) {
                             processmsg = false;
+                        } else if (msg.message == 0) {
+                            // ignore
                         } else if (msg.message == WM_GRAPHNOTIFY) {
                             // ignore
                         } else {
-                            TRACE(_T("Dispatch WM during graph close: %d\n"), msg.message);
+                            if (msg.message != WM_PAINT && msg.message != WM_KEYUP && msg.message != WM_MOUSEMOVE && msg.message != EVENT_OBJECT_VALUECHANGE && msg.message != EVENT_OBJECT_PARENTCHANGE && msg.message != 0xc03e) {
+                                TRACE(_T("Dispatch WM during graph close: msg=0x%x wp=%u lp=%ld\n"), msg.message, msg.wParam, msg.lParam);
+                            }
                             TranslateMessage(&msg);
                             DispatchMessage(&msg);
                         }
@@ -19764,25 +19781,25 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
                     if (extendedwait || m_fFullScreen || s.hMasterWnd) {
                         processmsg = false;
                     } else {
-                        CString msg;
+                        CString timeoutmsg;
                         if (!m_pGB && m_pGB_preview) {
 #if !defined(_DEBUG) && USE_DRDUMP_CRASH_REPORTER && (MPC_VERSION_REV > 10) && 0
                             if (CrashReporter::IsEnabled()) {
                                 throw 1;
                             }
 #endif
-                            msg = L"Timeout when closing preview filter graph.\n\nClick YES to terminate player process. Click NO to wait longer (up to 15 seconds).";
+                            timeoutmsg = L"Timeout when closing preview filter graph.\n\nClick YES to terminate player process. Click NO to wait longer (up to 15 seconds).";
                         } else {
                             if (m_pMVRS) {
-                                msg = L"Timeout when closing filter graph.\n\nIf this happens often, try one of these solutions:\n- Use MPC Video renderer instead of MadVR\n- Use AMD GPU driver 24.8.1 (or older)(newer ones have compatibility issue with MadVR)\n\nClick YES to terminate player process. Click NO to wait longer (up to 15 seconds).";
+                                timeoutmsg = L"Timeout when closing filter graph.\n\nIf this happens often, try one of these solutions:\n- Use MPC Video renderer instead of MadVR\n- Use AMD GPU driver 24.8.1 (or older)(newer ones have compatibility issue with MadVR)\n\nClick YES to terminate player process. Click NO to wait longer (up to 15 seconds).";
                             } else {
-                                msg = L"Timeout when closing filter graph.\n\nClick YES to terminate player process. Click NO to wait longer (up to 15 seconds).";
+                                timeoutmsg = L"Timeout when closing filter graph.\n\nClick YES to terminate player process. Click NO to wait longer (up to 15 seconds).";
                             }
                         }
                         if (USE_LOGGER(s)) {
                             PLAYER_LOG(_T("CMainFrame::CloseMedia - Timeout when closing filter graph"));
                         }
-                        if (IDYES == AfxMessageBox(msg, MB_ICONEXCLAMATION | MB_YESNO, 0)) {
+                        if (IDYES == AfxMessageBox(timeoutmsg, MB_ICONEXCLAMATION | MB_YESNO, 0)) {
                             processmsg = false;
                         } else {
                             extendedwait = true;
