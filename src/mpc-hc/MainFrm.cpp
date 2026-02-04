@@ -14789,6 +14789,8 @@ CSize CMainFrame::OpenSetupGetVideoSize()
 // Called from GraphThread
 void CMainFrame::OpenSetupVideo()
 {
+    CAutoLock ga(&lockGraphAccess);
+
     CSize vs = OpenSetupGetVideoSize();
     if (m_fShockwaveGraph) {
         m_fAudioOnly = false;
