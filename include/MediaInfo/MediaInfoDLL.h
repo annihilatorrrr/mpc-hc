@@ -555,7 +555,7 @@ namespace MediaInfoDLL
     class MediaInfo
     {
     public :
-        MediaInfo()        {if (!MediaInfo_Module) MediaInfoDLL_Load(); if (!MediaInfo_Module) {Handle = NULL; return;}; Handle = MediaInfo_New();};
+        MediaInfo()        {if (!MediaInfo_Module) MediaInfoDLL_Load(); if (!MediaInfo_Module || !MediaInfo_New) {Handle = NULL; return;}; Handle = MediaInfo_New();}; // MPC_HC fix
         ~MediaInfo()       {MEDIAINFO_TEST_VOID; MediaInfo_Delete(Handle);};
 
         //File
@@ -581,7 +581,7 @@ namespace MediaInfoDLL
         size_t        State_Get() {MEDIAINFO_TEST_INT; return MediaInfo_State_Get(Handle);};
         size_t        Count_Get(stream_t StreamKind, size_t StreamNumber = (size_t) - 1)  {MEDIAINFO_TEST_INT; return MediaInfo_Count_Get(Handle, (MediaInfo_stream_C)StreamKind, StreamNumber);};
 
-        bool IsReady() {return (Handle != nullptr && MediaInfo_Module != nullptr);} // MPC-HC fix
+        bool IsReady() {return (Handle != nullptr && MediaInfo_Module != nullptr);}
 
     private :
         void* Handle;
