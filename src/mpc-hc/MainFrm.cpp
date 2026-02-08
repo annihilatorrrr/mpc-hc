@@ -1290,6 +1290,12 @@ void CMainFrame::OnClose()
         FLUSH_LOGGER();
     }
 
+    MSG msg;
+    int pm = 0;
+    while ((pm++ < 5) && PeekMessage(&msg, nullptr, WM_ACTIVATE, WM_ACTIVATE, PM_REMOVE)) {
+        TRACE(L"Purged WM_ACTIVATE during player close\n");
+    }
+
     __super::OnClose();
 }
 
