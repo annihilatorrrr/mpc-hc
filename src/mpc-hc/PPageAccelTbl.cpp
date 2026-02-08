@@ -944,8 +944,11 @@ BOOL CPPageAccelTbl::OnInitDialog()
         m_list.SetFont(curDialogFont);
     }
 
-    for (int i = 0, j = m_list.GetHeaderCtrl()->GetItemCount(); i < j; i++) {
-        m_list.DeleteColumn(0);
+    CHeaderCtrl* hctrl = m_list.GetHeaderCtrl();
+    if (hctrl) {
+        for (int i = 0, j = hctrl->GetItemCount(); i < j; i++) {
+            m_list.DeleteColumn(0);
+        }
     }
     m_list.InsertColumn(COL_CMD, ResStr(IDS_AG_COMMAND), LVCFMT_LEFT, 80);
     m_list.InsertColumn(COL_KEY, ResStr(IDS_AG_KEY), LVCFMT_LEFT, 80);
