@@ -1439,7 +1439,12 @@ void CPlayerToolBar::OnTbnEndAdjust(NMHDR* pNMHDR, LRESULT* pResult) {
 }
 
 void CPlayerToolBar::OnLButtonDblClk(UINT nFlags, CPoint point) {
-//disabled to avoid the built-in customization dialog
+    // convert to a second left click if on active button
+    int i = getHitButtonIdx(point);
+    if (i >= 0 && !(GetButtonStyle(i) & (TBBS_SEPARATOR|TBBS_DISABLED))) {
+        __super::OnLButtonDown(nFlags, point);
+        CToolBar::OnLButtonUp(nFlags, point);
+    }
 }
 
 void CPlayerToolBar::ToolBarReset() {
