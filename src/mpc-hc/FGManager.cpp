@@ -2752,23 +2752,30 @@ STDMETHODIMP CFGManagerCustom::AddFilter(IBaseFilter* pBF, LPCWSTR pName)
 
     HRESULT hr;
 
+    CLSID clsid = GetCLSID(pBF);
+
+    if (clsid == CLSID_AVIDec || clsid == CLSID_ACMWrapper) {
+        AfxGetMyApp()->HookModuleLoading();
+    }
+
     if (FAILED(hr = __super::AddFilter(pBF, pName))) {
         return hr;
     }
 
-    CAppSettings& s = AfxGetAppSettings();
-
-    if (GetCLSID(pBF) == CLSID_DMOWrapperFilter) {
+    if (clsid == CLSID_DMOWrapperFilter) {
         if (CComQIPtr<IPropertyBag> pPB = pBF) {
             CComVariant var(true);
             pPB->Write(_T("_HIRESOUTPUT"), &var);
         }
     }
 
-    if (CComQIPtr<IAudioSwitcherFilter> pASF = pBF) {
-        pASF->SetSpeakerConfig(s.fCustomChannelMapping, s.pSpeakerToChannelMap);
-        pASF->SetAudioTimeShift(s.fAudioTimeShift ? 10000i64 * s.iAudioTimeShift : 0);
-        pASF->SetNormalizeBoost2(s.fAudioNormalize, s.nAudioMaxNormFactor, s.fAudioNormalizeRecover, s.nAudioBoost);
+    if (clsid == __uuidof(CAudioSwitcherFilter)) {
+        if (CComQIPtr<IAudioSwitcherFilter> pASF = pBF) {
+            CAppSettings& s = AfxGetAppSettings();
+            pASF->SetSpeakerConfig(s.fCustomChannelMapping, s.pSpeakerToChannelMap);
+            pASF->SetAudioTimeShift(s.fAudioTimeShift ? 10000i64 * s.iAudioTimeShift : 0);
+            pASF->SetNormalizeBoost2(s.fAudioNormalize, s.nAudioMaxNormFactor, s.fAudioNormalizeRecover, s.nAudioBoost);
+        }
     }
 
     return hr;

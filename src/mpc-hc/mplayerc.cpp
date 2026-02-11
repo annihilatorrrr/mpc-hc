@@ -1489,7 +1489,7 @@ NTSTATUS WINAPI Mine_NtQueryInformationProcess(HANDLE ProcessHandle, PROCESSINFO
     return nRet;
 }
 
-#define USE_DLL_BLOCKLIST 0
+#define USE_DLL_BLOCKLIST 1
 
 #if USE_DLL_BLOCKLIST
 #define STATUS_UNSUCCESSFUL ((NTSTATUS)0xC0000001L)
@@ -1524,6 +1524,7 @@ typedef struct {
 } blocked_module_t;
 
 // list of modules that can cause crashes or other unwanted behavior
+// limit blocking to ACM/VFW codecs, as blocking other stuff might result in repeated loading attempts and performance issues
 static blocked_module_t moduleblocklist[] = {
 #if WIN64
     // Logitech codec
@@ -1537,39 +1538,20 @@ static blocked_module_t moduleblocklist[] = {
     {_T("\\lameacm.acm"), 12},
     // ffdshow vfw
     {_T("\\ff_vfw.dll"), 11},
-#if WIN64
-    // Trusteer Rapport
-    {_T("\\rooksbas_x64.dll"), 17},
-    {_T("\\rooksdol_x64.dll"), 17},
-    {_T("\\rapportgh_x64.dll"), 18},
-#endif
-    // ASUS GamerOSD
-    {_T("\\atkdx11disp.dll"), 16},
-    // ASUS GPU TWEAK II OSD
-    {_T("\\gtii-osd64.dll"), 15},
-    {_T("\\gtii-osd64-vk.dll"), 18},
-    {_T("\\gtiii-osd64.dll"), 16},
-    // Nahimic Audio
-    {L"\\nahimicmsidevprops.dll", 23},
-    {L"\\nahimicmsiosd.dll", 18},
-    // LoiLoGameRecorder
-    {_T("\\loilocap.dll"), 13},
-    // Other
-    {_T("\\tortoiseoverlays.dll"), 21},
+
+    // other candidates for blocking that often crash:
+    // cfhd.dll, prodad_codec.dll, tsccvid64.dll, ajavfw.dll
 };
 
 bool IsBlockedModule(wchar_t* modulename)
 {
     size_t mod_name_len = wcslen(modulename);
 
-    //TRACE(L"Checking module blocklist: %s\n", modulename);
-
     for (size_t i = 0; i < _countof(moduleblocklist); i++) {
         blocked_module_t* b = &moduleblocklist[i];
         if (mod_name_len > b->name_len) {
             wchar_t* dll_ptr = modulename + mod_name_len - b->name_len;
             if (_wcsicmp(dll_ptr, b->name) == 0) {
-                //AfxMessageBox(modulename);
                 TRACE(L"Blocked module load: %s\n", modulename);
                 return true;
             }
@@ -1616,6 +1598,27 @@ NTSTATUS STDMETHODCALLTYPE Mine_NtMapViewOfSection(HANDLE SectionHandle, HANDLE 
     return ret;
 }
 #endif
+
+void CMPlayerCApp::HookModuleLoading() {
+#if USE_DLL_BLOCKLIST
+    // ToDo: maybe check registry first to see if any "bad" codecs are installed?
+    if (m_hNTDLL && !Real_NtMapViewOfSection) {
+        Real_NtMapViewOfSection = (pfn_NtMapViewOfSection)GetProcAddress(m_hNTDLL, "NtMapViewOfSection");
+        Real_NtUnmapViewOfSection = (pfn_NtUnmapViewOfSection)GetProcAddress(m_hNTDLL, "NtUnmapViewOfSection");
+        Real_NtQuerySection = (pfn_NtQuerySection)GetProcAddress(m_hNTDLL, "NtQuerySection");
+        HMODULE k32 = GetModuleHandle(L"kernel32.dll");
+        if (k32) {
+            Real_GetMappedFileNameW = (pfn_GetMappedFileNameW)GetProcAddress(k32, "K32GetMappedFileNameW");
+        }
+
+        if (Real_NtMapViewOfSection && Real_NtUnmapViewOfSection && Real_NtQuerySection && Real_GetMappedFileNameW) {
+            if (Mhook_SetHookEx(&Real_NtMapViewOfSection, Mine_NtMapViewOfSection)) {
+                MH_EnableHook(MH_ALL_HOOKS);
+            }
+        }
+    }
+#endif
+}
 
 static LONG Mine_ChangeDisplaySettingsEx(LONG ret, DWORD dwFlags, LPVOID lParam)
 {
@@ -1946,18 +1949,6 @@ BOOL CMPlayerCApp::InitInstance()
     if (!bHookingSuccessful) {
         AfxMessageBox(IDS_HOOKS_FAILED);
     }
-
-#if USE_DLL_BLOCKLIST
-    if (m_hNTDLL) {
-        Real_NtMapViewOfSection = (pfn_NtMapViewOfSection)GetProcAddress(m_hNTDLL, "NtMapViewOfSection");
-        Real_NtUnmapViewOfSection = (pfn_NtUnmapViewOfSection)GetProcAddress(m_hNTDLL, "NtUnmapViewOfSection");
-        Real_NtQuerySection = (pfn_NtQuerySection)GetProcAddress(m_hNTDLL, "NtQuerySection");
-        Real_GetMappedFileNameW = (pfn_GetMappedFileNameW)GetProcAddress(GetModuleHandle(L"kernel32.dll"), "K32GetMappedFileNameW");
-        if (Real_NtMapViewOfSection && Real_NtUnmapViewOfSection && Real_NtQuerySection && Real_GetMappedFileNameW) {
-            VERIFY(Mhook_SetHookEx(&Real_NtMapViewOfSection, Mine_NtMapViewOfSection));
-        }
-    }
-#endif
 
     // If those hooks fail it's annoying but try to run anyway without reporting any error in release mode
     VERIFY(Mhook_SetHookEx(&Real_ChangeDisplaySettingsExA, Mine_ChangeDisplaySettingsExA));

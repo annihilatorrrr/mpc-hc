@@ -213,6 +213,7 @@ public:
     virtual BOOL SaveAllModified() override;
 
 public:
+    void HookModuleLoading();
     void SetClosingState();
 
 public:
