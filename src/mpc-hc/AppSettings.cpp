@@ -3621,7 +3621,7 @@ bool CAppSettings::IsVSFilterInstalled()
     return IsCLSIDRegistered(CLSID_VSFilter);
 }
 
-void CAppSettings::UpdateSettings()
+void CAppSettings::MigrateSettings()
 {
     auto pApp = AfxGetMyApp();
     ASSERT(pApp);
@@ -3857,6 +3857,30 @@ void CAppSettings::UpdateSettings()
                     break;
             }
         [[fallthrough]];
+        default:
+            pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_R_VERSION, 8);
+    }
+}
+
+void CAppSettings::UpdateSettings()
+{
+    auto pApp = AfxGetMyApp();
+
+    UINT version = pApp->GetProfileInt(IDS_R_SETTINGS, IDS_R_VERSION, 0);
+    if (version >= APPSETTINGS_VERSION) {
+        return; // Nothing to update
+    }
+
+    switch (version) {
+        case 8:
+            // enable all internal filters
+            for (int f = 0; f < SRC_LAST; f++) {
+                SrcFilters[f] = true;
+            }
+            for (int f = 0; f < TRA_LAST; f++) {
+                TraFilters[f] = true;
+            }
+            [[fallthrough]];
         default:
             pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_R_VERSION, APPSETTINGS_VERSION);
     }

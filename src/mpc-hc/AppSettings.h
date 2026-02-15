@@ -421,7 +421,7 @@ public:
     CUIceClient();
 };
 
-#define APPSETTINGS_VERSION 8
+#define APPSETTINGS_VERSION 9
 
 struct DVD_POSITION {
     ULONGLONG           llDVDGuid = 0;
@@ -1076,6 +1076,7 @@ public:
             SaveExternalFilters(m_filters);
         }
     };
+    void            MigrateSettings();
     void            UpdateSettings();
 
     void SavePlayListPosition(CStringW playlistPath, UINT position);

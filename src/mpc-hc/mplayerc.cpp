@@ -2214,8 +2214,9 @@ BOOL CMPlayerCApp::InitInstance()
         }
     }
 
-    m_s->UpdateSettings(); // update settings
-    m_s->LoadSettings(); // read settings
+    m_s->MigrateSettings(); // migrate old settings
+    m_s->LoadSettings();    // read settings
+    m_s->UpdateSettings();  // update settings
 
     #if !defined(_DEBUG) && USE_DRDUMP_CRASH_REPORTER
     if (!m_s->bEnableCrashReporter) {
