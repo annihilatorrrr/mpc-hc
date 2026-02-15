@@ -1534,13 +1534,14 @@ static blocked_module_t moduleblocklist[] = {
 #else
     {_T("\\mlc.dll"), 8},
 #endif
-    // Lame
-    {_T("\\lameacm.acm"), 12},
-    // ffdshow vfw
     {_T("\\ff_vfw.dll"), 11},
+    {_T("\\tsccvid64.dll"), 14},
+    {_T("\\lameacm.acm"), 12},
+    {_T("\\bdmpega64.acm"), 14},
+    {_T("\\ff_acm.acm"), 11},
 
     // other candidates for blocking that often crash:
-    // cfhd.dll, prodad_codec.dll, tsccvid64.dll, ajavfw.dll
+    // cfhd.dll, prodad_codec.dll, ajavfw.dll
 };
 
 bool IsBlockedModule(wchar_t* modulename)
