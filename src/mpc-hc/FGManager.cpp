@@ -2299,9 +2299,12 @@ void CFGManagerCustom::InsertLAVVideo(bool IsPreview)
     pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_AVdn);
     pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_AVdh);
 #endif
+#if INTERNAL_DECODER_CFHD
+    pFGF = IsPreview || tra[TRA_CFHD] ? pFGLAVVideo : pFGLAVVideoLM;
+    pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_CFHD);
+#endif
 #if INTERNAL_DECODER_OTHERVIDEO
     pFGF = IsPreview || tra[TRA_OTHERVIDEO] ? pFGLAVVideo : pFGLAVVideoLM;
-    pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_CFHD);
     pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_APV1);
     pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_CUVC);
     pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_NCLC);

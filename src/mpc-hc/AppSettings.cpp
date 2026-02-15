@@ -533,6 +533,9 @@ CAppSettings::CAppSettings()
 #if INTERNAL_DECODER_DNXHD
     TraFiltersKeys[TRA_DNXHD] = FilterKey(_T("TRA_DNXHD"), true);
 #endif
+#if INTERNAL_DECODER_CFHD
+    TraFiltersKeys[TRA_CFHD] = FilterKey(_T("TRA_CFHD"), true);
+#endif
 #if INTERNAL_DECODER_OTHERVIDEO
     TraFiltersKeys[TRA_OTHERVIDEO] = FilterKey(_T("TRA_OTHERVIDEO"), true);
 #endif

@@ -717,6 +717,11 @@ void CPPageInternalFilters::InitFiltersList()
         m_filters.Add(filter_t(_T("DNxHD"), VIDEO_DECODER, TRA_DNXHD, IDS_INTERNAL_LAVF));
     }
 #endif
+#if INTERNAL_DECODER_CFHD
+    if (bLAVVideoIsAvailable) {
+        m_filters.Add(filter_t(_T("CFHD"), VIDEO_DECODER, TRA_CFHD, IDS_INTERNAL_LAVF));
+    }
+#endif
 #if INTERNAL_DECODER_OTHERVIDEO
     if (bLAVVideoIsAvailable) {
         m_filters.Add(filter_t(_T("Other video formats"), VIDEO_DECODER, TRA_OTHERVIDEO, IDS_INTERNAL_LAVF));
