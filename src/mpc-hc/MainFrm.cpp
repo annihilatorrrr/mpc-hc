@@ -1281,19 +1281,24 @@ void CMainFrame::OnClose()
 
     SendAPICommand(CMD_DISCONNECT, L"\0");  // according to CMD_NOTIFYENDOFSTREAM (ctrl+f it here), you're not supposed to send NULL here
 
-    lockGraphAccess.Lock();
-    AfxGetMyApp()->SetClosingState();
-    lockGraphAccess.Unlock();
+    {
+        CAutoLock ga(&lockGraphAccess);
+        AfxGetMyApp()->SetClosingState();
+
+        MSG msg;
+        while (PeekMessage(&msg, nullptr, WM_GRAPHNOTIFY, WM_GRAPHNOTIFY, PM_REMOVE)) {
+            TRACE(L"Purged queued graph event during player close\n");
+            ASSERT(false);
+        }
+        int pm = 0;
+        while ((pm++ < 5) && PeekMessage(&msg, nullptr, WM_ACTIVATE, WM_ACTIVATE, PM_REMOVE)) {
+            TRACE(L"Purged WM_ACTIVATE during player close\n");
+        }
+    }
 
     if (USE_LOGGER(s)) {
         PLAYER_LOG(_T("CMainFrame::OnClose - closing state has been set"));
         FLUSH_LOGGER();
-    }
-
-    MSG msg;
-    int pm = 0;
-    while ((pm++ < 5) && PeekMessage(&msg, nullptr, WM_ACTIVATE, WM_ACTIVATE, PM_REMOVE)) {
-        TRACE(L"Purged WM_ACTIVATE during player close\n");
     }
 
     __super::OnClose();
