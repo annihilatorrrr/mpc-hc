@@ -19505,6 +19505,9 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
     while (PeekMessage(&msg, nullptr, WM_GRAPHNOTIFY, WM_GRAPHNOTIFY, PM_REMOVE)) {
         TRACE(L"Purged queued graph event\n");
     }
+    if (PeekMessage(&msg, nullptr, WM_RESET_DEVICE, WM_RESET_DEVICE, PM_REMOVE)) {
+        TRACE(L"Purged queued WM_RESET_DEVICE\n");
+    }
 
     m_media_trans_control.close();
 
