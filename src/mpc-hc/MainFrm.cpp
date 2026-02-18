@@ -21589,7 +21589,7 @@ UINT CMainFrame::OnPowerBroadcast(UINT nPowerEvent, LPARAM nEventData)
     static BOOL bWasPausedBeforeSuspention;
 
     if (USE_LOGGER(AfxGetAppSettings())) {
-        PLAYER_LOG(_T("CMainFrame::OnPowerBroadcast"));
+        PLAYER_LOG(_T("CMainFrame::OnPowerBroadcast (%u)"), nPowerEvent);
     }
 
     switch (nPowerEvent) {
@@ -21597,7 +21597,7 @@ UINT CMainFrame::OnPowerBroadcast(UINT nPowerEvent, LPARAM nEventData)
             TRACE(_T("OnPowerBroadcast - suspending\n"));   // For user tracking
             bWasPausedBeforeSuspention = FALSE;             // Reset value
 
-            if (GetMediaState() == State_Running) {
+            if (GetMediaStateDirect() == State_Running) {
                 bWasPausedBeforeSuspention = TRUE;
                 SendMessage(WM_COMMAND, ID_PLAY_PAUSE);     // Pause
             }
@@ -21624,7 +21624,7 @@ void CMainFrame::OnSessionChange(UINT nSessionState, UINT nId)
 {
     const auto& s = AfxGetAppSettings();
     if (USE_LOGGER(s)) {
-        PLAYER_LOG(_T("CMainFrame::OnSessionChange"));
+        PLAYER_LOG(_T("CMainFrame::OnSessionChange (%u)"), nSessionState);
     }
 
     if (s.bLockNoPause) {
@@ -21638,7 +21638,7 @@ void CMainFrame::OnSessionChange(UINT nSessionState, UINT nId)
             TRACE(_T("OnSessionChange - Lock session\n"));
             bWasPausedBeforeSessionChange = FALSE;
 
-            if (GetMediaState() == State_Running && !m_fAudioOnly) {
+            if (GetMediaStateDirect() == State_Running && !m_fAudioOnly) {
                 bWasPausedBeforeSessionChange = TRUE;
                 SendMessage(WM_COMMAND, ID_PLAY_PAUSE);
             }
@@ -21650,6 +21650,8 @@ void CMainFrame::OnSessionChange(UINT nSessionState, UINT nId)
                 SendMessage(WM_COMMAND, ID_PLAY_PLAY);
             }
             break;
+        default:
+            TRACE(_T("OnSessionChange - %u\n"), nSessionState);
     }
 }
 
