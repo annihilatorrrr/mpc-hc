@@ -214,8 +214,8 @@ void CDX9RenderingEngine::CleanupRenderingEngine()
     }
 
     for (int i = 0; i < 2; i++) {
-        m_pTemporaryVideoTextures[i] = nullptr;
-        m_pTemporaryScreenSpaceTextures[i] = nullptr;
+        m_pTemporaryVideoTextures[i].Release();
+        m_pTemporaryScreenSpaceTextures[i].Release();
     }
 }
 
@@ -229,7 +229,7 @@ HRESULT CDX9RenderingEngine::CreateVideoSurfaces()
 
     // Free previously allocated temporary video textures, because the native video size might have been changed!
     for (int i = 0; i < 2; i++) {
-        m_pTemporaryVideoTextures[i] = nullptr;
+        m_pTemporaryVideoTextures[i].Release();
     }
 
     CheckPointer(m_pD3DDev, E_POINTER);
@@ -606,7 +606,7 @@ HRESULT CDX9RenderingEngine::InitTemporaryScreenSpaceTextures(int count)
             if (FAILED(hr)) {
                 // Free all textures
                 for (int j = 0; j < 2; j++) {
-                    m_pTemporaryScreenSpaceTextures[j] = nullptr;
+                    m_pTemporaryScreenSpaceTextures[j].Release();
                 }
 
                 return hr;
@@ -616,7 +616,7 @@ HRESULT CDX9RenderingEngine::InitTemporaryScreenSpaceTextures(int count)
 
     // Free unnecessary textures
     for (int i = count; i < 2; i++) {
-        m_pTemporaryScreenSpaceTextures[i] = nullptr;
+        m_pTemporaryScreenSpaceTextures[i].Release();
     }
 
     return hr;
