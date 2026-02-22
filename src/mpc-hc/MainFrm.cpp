@@ -2760,9 +2760,11 @@ void CMainFrame::DoAfterPlaybackEvent()
     }
 
     if (m_fEndOfStream) {
-        m_OSD.EnableShowMessage(false);
-        SendMessage(WM_COMMAND, ID_PLAY_PAUSE);
-        m_OSD.EnableShowMessage();
+        if (GetLoadState() == MLS::LOADED) {
+            m_OSD.EnableShowMessage(false);
+            SendMessage(WM_COMMAND, ID_PLAY_PAUSE);
+            m_OSD.EnableShowMessage();
+        }
         if (bNoMoreMedia) {
             m_OSD.DisplayMessage(OSD_TOPLEFT, ResStr(IDS_NO_MORE_MEDIA));
         }
@@ -2986,25 +2988,19 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
         ASSERT(false);
         return S_OK;
     }
-    if (!m_pME || lParam != (LPARAM)m_pME.p) {
-        ASSERT(false);
-        return S_OK;
-    }
-    if (m_fOpeningAborted || m_eMediaLoadState != MLS::LOADED && m_eMediaLoadState != MLS::LOADING) {
-        return S_OK;
-    }
 
-    lockGraphAccess.Lock();
-
-    if (AfxGetMyApp()->m_fClosingState || m_fOpeningAborted || m_eMediaLoadState != MLS::LOADED && m_eMediaLoadState != MLS::LOADING) {
-        lockGraphAccess.Unlock();
-        ASSERT(false);
-        return S_OK;
-    }
-    if (!m_pME || lParam != (LPARAM)m_pME.p) {
-        lockGraphAccess.Unlock();
-        ASSERT(false);
-        return S_OK;
+    MLS loadstate;
+    {
+        CAutoLock ga(&lockGraphAccess);
+        if (AfxGetMyApp()->m_fClosingState || m_fOpeningAborted || !m_pME || lParam != (LPARAM)m_pME.p) {
+            ASSERT(false);
+            return S_OK;
+        }
+        loadstate = m_eMediaLoadState;
+        if (loadstate != MLS::LOADED && loadstate != MLS::LOADING) {
+            ASSERT(false);
+            return S_OK;
+        }
     }
 
     HRESULT hr = S_OK;
@@ -3014,11 +3010,11 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
     if (SUCCEEDED(m_pME->GetEvent(&evCode, &evParam1, &evParam2, 0))) {
 #ifdef _DEBUG
         if (evCode != EC_DVD_CURRENT_HMSF_TIME) {
-            TRACE(_T("--> CMainFrame::OnGraphNotify (thread %lu)(graph %u)(loadstate %d) event: %ws\n"), GetCurrentThreadId(), (unsigned int)(lParam & 0xffff), m_eMediaLoadState, GetEventString(evCode));
+            TRACE(_T("--> CMainFrame::OnGraphNotify (thread %lu)(graph %u)(loadstate %d) event: %ws\n"), GetCurrentThreadId(), (unsigned int)(lParam & 0xffff), loadstate, GetEventString(evCode));
         }
 #else
         if (evCode != EC_DVD_CURRENT_HMSF_TIME && USE_LOGGER(AfxGetAppSettings())) {
-            PLAYER_LOG(_T("CMainFrame::OnGraphNotify (thread %lu)(graph %u)(loadstate %d) event: %ws"), GetCurrentThreadId(), (unsigned int)(lParam & 0xffff), m_eMediaLoadState, GetEventString(evCode));
+            PLAYER_LOG(_T("CMainFrame::OnGraphNotify (thread %lu)(graph %u)(loadstate %d) event: %ws"), GetCurrentThreadId(), (unsigned int)(lParam & 0xffff), loadstate, GetEventString(evCode));
         }
 #endif
 
@@ -3032,7 +3028,7 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 
         switch (evCode) {
             case EC_PAUSED:
-                if (m_eMediaLoadState == MLS::LOADED) {
+                if (loadstate == MLS::LOADED) {
                     UpdateCachedMediaState();
                     if (m_audioTrackCount > 1) {
                         CheckSelectedAudioStream();
@@ -3070,6 +3066,10 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
                         SendMessage(WM_COMMAND, ID_FILE_CLOSE_AND_RESTORE);
                     }
                 }
+                break;
+            case EC_STREAM_ERROR_STILLPLAYING:
+            case EC_STREAM_ERROR_STOPPED:
+                TRACE(L"Failure code %x %x\n", evParam1, evParam2);
                 break;
             case EC_DVD_TITLE_CHANGE: {
                 if (GetPlaybackMode() == PM_FILE) {
@@ -3341,7 +3341,7 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
                 m_fAudioOnly = (size.cx <= 0 || size.cy <= 0);
                 OnVideoSizeChanged(bWasAudioOnly);
                 m_statusbarVideoSize.Format(_T("%dx%d"), size.cx, size.cy);
-                if (m_eMediaLoadState == MLS::LOADED) {
+                if (loadstate == MLS::LOADED) {
                     UpdateDXVAStatus();
                     CheckSelectedVideoStream();
                 }
@@ -3414,12 +3414,6 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
                 UpdateCachedMediaState();
                 TRACE(_T("Unhandled graph event\n"));
         }
-    }
-
-    if (!AfxGetMyApp()->m_fClosingState) {
-        lockGraphAccess.Unlock();
-    } else {
-        ASSERT(false);
     }
 
     return hr;
@@ -19500,15 +19494,6 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
         m_pME.Release();
     }
 
-    MSG msg;
-    // purge possible queued graph events
-    while (PeekMessage(&msg, nullptr, WM_GRAPHNOTIFY, WM_GRAPHNOTIFY, PM_REMOVE)) {
-        TRACE(L"Purged queued graph event\n");
-    }
-    if (PeekMessage(&msg, nullptr, WM_RESET_DEVICE, WM_RESET_DEVICE, PM_REMOVE)) {
-        TRACE(L"Purged queued WM_RESET_DEVICE\n");
-    }
-
     m_media_trans_control.close();
 
     if (m_bSettingUpMenus) {
@@ -19578,6 +19563,15 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
         if (s.fKeepHistory && !bPendingFileDelete) {
             savehistory = true;
         }
+    }
+
+    MSG msg;
+    // purge possible queued graph events
+    while (PeekMessage(&msg, nullptr, WM_GRAPHNOTIFY, WM_GRAPHNOTIFY, PM_REMOVE)) {
+        TRACE(L"Purged queued graph event\n");
+    }
+    if (PeekMessage(&msg, nullptr, WM_RESET_DEVICE, WM_RESET_DEVICE, PM_REMOVE)) {
+        TRACE(L"Purged queued WM_RESET_DEVICE\n");
     }
 
     // delay showing auto-hidden controls if new media is queued
@@ -19851,6 +19845,14 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
         }
     } else {
         CloseMediaPrivate();
+    }
+
+    // purge possible queued graph events
+    while (PeekMessage(&msg, nullptr, WM_GRAPHNOTIFY, WM_GRAPHNOTIFY, PM_REMOVE)) {
+        TRACE(L"Purged queued graph event\n");
+    }
+    if (PeekMessage(&msg, nullptr, WM_RESET_DEVICE, WM_RESET_DEVICE, PM_REMOVE)) {
+        TRACE(L"Purged queued WM_RESET_DEVICE\n");
     }
 
     // graph is destroyed, update stuff
