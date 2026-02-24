@@ -1273,6 +1273,12 @@ void CMainFrame::OnClose()
         CloseMedia();
     }
 
+#if USE_DRDUMP_CRASH_REPORTER & (MPC_VERSION_REV >= 10)
+    if (GetLoadState() != MLS::CLOSED) {
+        throw 1;
+    }
+#endif
+
     ASSERT(GetLoadState() == MLS::CLOSED);
     ASSERT(!m_bOpenMediaActive);
 
