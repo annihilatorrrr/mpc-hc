@@ -2501,7 +2501,9 @@ void CVobSubStream::Add(REFERENCE_TIME tStart, REFERENCE_TIME tStop, BYTE* pData
         ASSERT(false);
         return;
     }
-    vsi.GetPacketInfo(pData, pkt_size, dat_size);
+    if (!vsi.GetPacketInfo(pData, pkt_size, dat_size)) {
+        return;
+    }
 
     CAutoPtr<SubPic> p(DEBUG_NEW SubPic());
     p->tStart = tStart;
@@ -2601,9 +2603,9 @@ STDMETHODIMP CVobSubStream::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fp
         if (sp->tStart <= rt && rt < sp->tStop) {
             if (m_img.nIdx != (size_t)pos || (sp->bAnimated && sp->tStart + m_img.tCurrent * 10000i64 <= rt)) {
                 BYTE* pData = sp->pData.GetData();
-                m_img.Decode(
-                    pData, (pData[0] << 8) | pData[1], (pData[2] << 8) | pData[3], int((rt - sp->tStart) / 10000i64),
-                    m_bCustomPal, m_tridx, m_orgpal, m_cuspal, true);
+                size_t packetsize = (pData[0] << 8) | pData[1];
+                size_t datasize = (pData[2] << 8) | pData[3];
+                m_img.Decode(pData, packetsize, datasize, int((rt - sp->tStart) / 10000i64), m_bCustomPal, m_tridx, m_orgpal, m_cuspal, true);
                 m_img.nIdx = (size_t)pos;
             }
 
