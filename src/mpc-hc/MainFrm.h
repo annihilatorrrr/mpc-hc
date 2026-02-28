@@ -892,6 +892,12 @@ public:
     afx_msg LRESULT OnResetDevice(WPARAM wParam, LPARAM lParam);
     afx_msg LRESULT OnRepaintRenderLess(WPARAM wParam, LPARAM lParam);
 
+    afx_msg LRESULT OnDoStandby(WPARAM wParam, LPARAM lParam);
+    afx_msg LRESULT OnDoHibernate(WPARAM wParam, LPARAM lParam);
+    afx_msg LRESULT OnDoShutdown(WPARAM wParam, LPARAM lParam);
+    afx_msg LRESULT OnDoLogOff(WPARAM wParam, LPARAM lParam);
+    afx_msg LRESULT OnDoOpenCurPlaylist(WPARAM wParam, LPARAM lParam);
+
     afx_msg void SaveAppSettings();
 
     afx_msg LRESULT OnNcHitTest(CPoint point);

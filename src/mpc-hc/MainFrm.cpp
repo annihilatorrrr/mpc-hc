@@ -290,6 +290,12 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
     ON_MESSAGE(WM_RESET_DEVICE, OnResetDevice)
     ON_MESSAGE(WM_REARRANGERENDERLESS, OnRepaintRenderLess)
 
+    ON_MESSAGE(WM_MPC_STANDBY, OnDoStandby)
+    ON_MESSAGE(WM_MPC_HIBERNATE, OnDoHibernate)
+    ON_MESSAGE(WM_MPC_SHUTDOWN, OnDoShutdown)
+    ON_MESSAGE(WM_MPC_LOGOFF, OnDoLogOff)
+    ON_MESSAGE(WM_MPC_OPENCURPLAYLIST, OnDoOpenCurPlaylist)
+
     ON_MESSAGE_VOID(WM_SAVESETTINGS, SaveAppSettings)
 
     ON_WM_NCHITTEST()
@@ -2681,6 +2687,61 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
     __super::OnTimer(nIDEvent);
 }
 
+LRESULT CMainFrame::OnDoStandby(WPARAM wParam, LPARAM lParam)
+{
+    if (GetLoadState() != MLS::CLOSED) {
+        CloseMedia(false);
+    }
+
+    SetPrivilege(SE_SHUTDOWN_NAME);
+    SetSystemPowerState(TRUE, FALSE);
+
+    return S_OK;
+}
+
+LRESULT CMainFrame::OnDoHibernate(WPARAM wParam, LPARAM lParam)
+{
+    if (GetLoadState() != MLS::CLOSED) {
+        CloseMedia(false);
+    }
+
+    SetPrivilege(SE_SHUTDOWN_NAME);
+    SetSystemPowerState(FALSE, FALSE);
+
+    return S_OK;
+}
+
+LRESULT CMainFrame::OnDoShutdown(WPARAM wParam, LPARAM lParam)
+{
+    if (GetLoadState() != MLS::CLOSED) {
+        CloseMedia(false);
+    }
+
+    SetPrivilege(SE_SHUTDOWN_NAME);
+    InitiateSystemShutdownEx(nullptr, nullptr, 0, TRUE, FALSE, SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_MAINTENANCE | SHTDN_REASON_FLAG_PLANNED);
+
+    return S_OK;
+}
+
+LRESULT CMainFrame::OnDoLogOff(WPARAM wParam, LPARAM lParam)
+{
+    if (GetLoadState() != MLS::CLOSED) {
+        CloseMedia(false);
+    }
+
+    SetPrivilege(SE_SHUTDOWN_NAME);
+    ExitWindowsEx(EWX_LOGOFF | EWX_FORCEIFHUNG, 0);
+
+    return S_OK;
+}
+
+LRESULT CMainFrame::OnDoOpenCurPlaylist(WPARAM wParam, LPARAM lParam)
+{
+    OpenCurPlaylistItem();
+
+    return S_OK;
+}
+
 void CMainFrame::DoAfterPlaybackEvent()
 {
     CAppSettings& s = AfxGetAppSettings();
@@ -2697,22 +2758,13 @@ void CMainFrame::DoAfterPlaybackEvent()
         SetThreadExecutionState(ES_CONTINUOUS);
         SendMessage(WM_SYSCOMMAND, SC_MONITORPOWER, 2);
     } else if (s.nCLSwitches & CLSW_STANDBY) {
-        SetPrivilege(SE_SHUTDOWN_NAME);
-        SetSystemPowerState(TRUE, FALSE);
-        SendMessage(WM_COMMAND, ID_FILE_EXIT); // Recheck if this is still needed after switching to new toolset and SetSuspendState()
+        PostMessage(WM_MPC_STANDBY, 0, 0);
     } else if (s.nCLSwitches & CLSW_HIBERNATE) {
-        SetPrivilege(SE_SHUTDOWN_NAME);
-        SetSystemPowerState(FALSE, FALSE);
-        SendMessage(WM_COMMAND, ID_FILE_EXIT);
+        PostMessage(WM_MPC_HIBERNATE, 0, 0);
     } else if (s.nCLSwitches & CLSW_SHUTDOWN) {
-        SetPrivilege(SE_SHUTDOWN_NAME);
-        InitiateSystemShutdownEx(nullptr, nullptr, 0, TRUE, FALSE,
-                                 SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_MAINTENANCE | SHTDN_REASON_FLAG_PLANNED);
-        SendMessage(WM_COMMAND, ID_FILE_EXIT);
+        PostMessage(WM_MPC_SHUTDOWN, 0, 0);
     } else if (s.nCLSwitches & CLSW_LOGOFF) {
-        SetPrivilege(SE_SHUTDOWN_NAME);
-        ExitWindowsEx(EWX_LOGOFF | EWX_FORCEIFHUNG, 0);
-        SendMessage(WM_COMMAND, ID_FILE_EXIT);
+        PostMessage(WM_MPC_LOGOFF, 0, 0);
     } else if (s.nCLSwitches & CLSW_LOCK) {
         m_fEndOfStream = true;
         bExitFullScreen = true;
@@ -2729,7 +2781,7 @@ void CMainFrame::DoAfterPlaybackEvent()
             case CAppSettings::AfterPlayback::PLAY_NEXT:
                 if (m_wndPlaylistBar.GetCount() < 2) { // ignore global PLAY_NEXT in case of a playlist
                     if (!SearchInDir(true, s.bLoopFolderOnPlayNextFile)) {
-                        SendMessage(WM_COMMAND, ID_FILE_CLOSE_AND_RESTORE);
+                        PostMessage(WM_COMMAND, ID_FILE_CLOSE_AND_RESTORE);
                     }
                 }
                 break;
@@ -2746,13 +2798,15 @@ void CMainFrame::DoAfterPlaybackEvent()
                 m_fEndOfStream = true;
                 bExitFullScreen = true;
                 SetThreadExecutionState(ES_CONTINUOUS);
-                SendMessage(WM_SYSCOMMAND, SC_MONITORPOWER, 2);
+                PostMessage(WM_SYSCOMMAND, SC_MONITORPOWER, 2);
                 break;
             case CAppSettings::AfterPlayback::CLOSE:
-                SendMessage(WM_COMMAND, ID_FILE_CLOSE_AND_RESTORE);
+                PostMessage(WM_COMMAND, ID_FILE_CLOSE_AND_RESTORE);
                 break;
             case CAppSettings::AfterPlayback::EXIT:
-                SendMessage(WM_COMMAND, ID_FILE_EXIT);
+                if (GetLoadState() != MLS::CLOSED) {
+                    PostMessage(WM_COMMAND, ID_FILE_EXIT);
+                }
                 break;
             default:
                 m_fEndOfStream = true;
@@ -16309,7 +16363,7 @@ bool CMainFrame::SearchInDir(bool bDirForward, bool bLoop /*= false*/)
     CAtlList<CString> sl;
     sl.AddHead(*current);
     m_wndPlaylistBar.Open(sl, false);
-    OpenCurPlaylistItem();
+    PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
 
     return true;
 }
