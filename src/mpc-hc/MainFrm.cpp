@@ -19482,20 +19482,25 @@ bool CMainFrame::DisplayChange()
 
 bool CMainFrame::CloseMediaBeforeOpen()
 {
-    if (m_eMediaLoadState == MLS::LOADED || m_eMediaLoadState == MLS::LOADING || m_eMediaLoadState == MLS::FAILING) {
+    if (m_eMediaLoadState == MLS::LOADED || m_eMediaLoadState == MLS::LOADING) {
         CloseMedia(true);
-    } else if (m_eMediaLoadState == MLS::CLOSING) {
+    } else if (m_eMediaLoadState == MLS::CLOSING || m_eMediaLoadState == MLS::FAILING) {
         // was already busy closing, wait a little
         for (int i = 0; i < 10; i++) {
             Sleep(250);
             if (m_eMediaLoadState == MLS::CLOSED) {
-                return true;
+                break;
             }
         }
         if (m_eMediaLoadState != MLS::CLOSED) {
             PLAYER_LOG(_T("CMainFrame::CloseMediaBeforeOpen - unexpected loadstate %d"), m_eMediaLoadState);
+            ASSERT(false);
             return false;
         }
+    }
+    if (AfxGetMyApp()->m_fClosingState) {
+        ASSERT(false);
+        return false;
     }
     return true;
 }
