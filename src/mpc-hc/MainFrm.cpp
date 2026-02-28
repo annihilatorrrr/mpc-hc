@@ -19652,6 +19652,8 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
         m_controls.DelayShowNotLoaded(false);
     }
 
+    CAtlList<MSG> postponedmsg;
+
     // abort if loading
     bool bGraphTerminated = false;
     if (GetLoadState() == MLS::LOADING) {
@@ -19718,8 +19720,13 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
                                 processmsg = false;
                             } else if (msg.message == 0) {
                                 // ignore
-                            } else if (msg.message == WM_GRAPHNOTIFY) {
+                            } else if (msg.message == WM_GRAPHNOTIFY || msg.message == WM_RESET_DEVICE) {
                                 // ignore
+                            } else if (msg.message == WM_POSTOPEN || msg.message == WM_OPENFAILED) {
+                                // ignore
+                            } else if (msg.message == WM_SYSCOMMAND || msg.message == WM_APPCOMMAND || msg.message == WM_DISPLAYCHANGE || msg.message >= WM_APP && msg.message < WM_APP + 100) {
+                                // postpone
+                                postponedmsg.AddHead(msg);
                             } else {
                                 if (msg.message != WM_PAINT && msg.message != WM_KEYUP && msg.message != WM_MOUSEMOVE && msg.message != EVENT_OBJECT_VALUECHANGE && msg.message != EVENT_OBJECT_PARENTCHANGE && msg.message != 0xc03e) {
                                     TRACE(_T("Dispatch WM during graph abort: msg=0x%x wp=%u lp=%ld\n"), msg.message, msg.wParam, msg.lParam);
@@ -19846,8 +19853,11 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
                             processmsg = false;
                         } else if (msg.message == 0) {
                             // ignore
-                        } else if (msg.message == WM_GRAPHNOTIFY) {
+                        } else if (msg.message == WM_GRAPHNOTIFY || msg.message == WM_RESET_DEVICE) {
                             // ignore
+                        } else if (msg.message == WM_SYSCOMMAND || msg.message == WM_APPCOMMAND || msg.message == WM_DISPLAYCHANGE || msg.message >= WM_APP && msg.message < WM_APP + 100) {
+                            // postpone
+                            postponedmsg.AddHead(msg);
                         } else {
                             if (msg.message != WM_PAINT && msg.message != WM_KEYUP && msg.message != WM_MOUSEMOVE && msg.message != EVENT_OBJECT_VALUECHANGE && msg.message != EVENT_OBJECT_PARENTCHANGE && msg.message != 0xc03e) {
                                 TRACE(_T("Dispatch WM during graph close: msg=0x%x wp=%u lp=%ld\n"), msg.message, msg.wParam, msg.lParam);
@@ -19938,6 +19948,17 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
         PLAYER_LOG(_T("CMainFrame::CloseMedia - completed"));
     }
     FLUSH_LOGGER();
+
+    while (!postponedmsg.IsEmpty()) {
+        msg = postponedmsg.RemoveHead();
+        CString msgstr;
+        msgstr.Format(L"Postponed WM after graph close: msg=0x%x wp=%u lp=%ld (pendingmedia=%d)\n", msg.message, msg.wParam, msg.lParam, bNextIsQueued);
+        TRACE(msgstr);
+        if (USE_LOGGER(s)) {
+            PLAYER_LOG(msgstr);
+        }
+        PostMessage(msg.message, msg.wParam, msg.lParam);
+    }
 
     TRACE(_T("Close media completed\n"));
 }
