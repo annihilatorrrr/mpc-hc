@@ -18594,7 +18594,8 @@ REFERENCE_TIME CMainFrame::GetClosestKeyFramePreview(REFERENCE_TIME rtTarget) co
 
 void CMainFrame::SeekTo(REFERENCE_TIME rtPos, bool bShowOSD /*= true*/)
 {
-    if (m_pMS == nullptr) {
+    if (m_pMS.p == nullptr) {
+        ASSERT(false);
         return;
     }
     ASSERT(lastSeekFinish >= lastSeekStart); // ToDo: remove lastSeekStart variable if no regressions show up
@@ -18619,8 +18620,8 @@ void CMainFrame::DoSeekTo(REFERENCE_TIME rtPos, bool bShowOSD /*= true*/)
 {
     //TRACE(_T("DoSeekTo: %lu\n"), rtPos);
 
-    ASSERT(m_pMS != nullptr);
-    if (m_pMS == nullptr) {
+    if (m_pMS.p == nullptr) {
+        ASSERT(false);
         return;
     }
     OAFilterState fs = GetMediaState();
