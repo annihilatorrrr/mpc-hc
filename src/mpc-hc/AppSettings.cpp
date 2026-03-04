@@ -2681,8 +2681,13 @@ void CAppSettings::ParseCommandLine(CAtlList<CString>& cmdln)
                 nCLSwitches |= CLSW_ADMINOPTION;
                 iAdminOption = _ttoi(cmdln.GetNext(pos));
             } else if (sw == _T("slave") && pos) {
-                nCLSwitches |= CLSW_SLAVE;
-                hMasterWnd = (HWND)IntToPtr(_ttoi(cmdln.GetNext(pos)));
+                HWND slavewnd = (HWND)IntToPtr(_ttoi(cmdln.GetNext(pos)));
+                if (slavewnd != nullptr && ::IsWindow(slavewnd)) {
+                    nCLSwitches |= CLSW_SLAVE;
+                    hMasterWnd = slavewnd;
+                } else {
+                    ASSERT(false);
+                }
             } else if (sw == _T("fixedsize") && pos) {
                 CAtlList<CString> sl;
                 // Optional arguments for the main window's position
