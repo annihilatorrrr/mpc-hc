@@ -9506,7 +9506,7 @@ void CMainFrame::KillTimersStop()
     int pm = 0;
     while ((pm++ < 5) && PeekMessage(&msg, nullptr, WM_TIMER, WM_TIMER, PM_REMOVE)) {
         if (msg.wParam == TIMER_STREAMPOSPOLLER || msg.wParam == TIMER_STREAMPOSPOLLER2 || msg.wParam == TIMER_STATS || msg.wParam == TIMER_DELAYEDSEEK) {
-            TRACE(L"Purged WM_TIMER during stop, wParam=%PRIu64\n", msg.wParam);
+            TRACE(L"Purged WM_TIMER during stop, wParam=%llu\n", msg.wParam);
         } else {
             DispatchMessage(&msg);
         }
@@ -19766,7 +19766,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
                                 postponedmsg.AddHead(msg);
                             } else {
                                 if (msg.message != WM_PAINT && msg.message != WM_KEYUP && msg.message != WM_MOUSEMOVE && msg.message != 0xc03e) {
-                                    TRACE(_T("Dispatch WM during graph abort: msg=0x%x wp=%PRIu64 lp=%ld\n"), msg.message, msg.wParam, msg.lParam);
+                                    TRACE(_T("Dispatch WM during graph abort: msg=0x%x wp=%llu lp=%ld\n"), msg.message, msg.wParam, msg.lParam);
                                 }
                                 TranslateMessage(&msg);
                                 DispatchMessage(&msg);
@@ -19908,7 +19908,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
                             postponedmsg.AddHead(msg);
                         } else {
                             if (msg.message != WM_PAINT && msg.message != WM_KEYUP && msg.message != WM_MOUSEMOVE && msg.message != 0xc03e) {
-                                TRACE(_T("Dispatch WM during graph close: msg=0x%x wp=%PRIu64 lp=%ld\n"), msg.message, msg.wParam, msg.lParam);
+                                TRACE(_T("Dispatch WM during graph close: msg=0x%x wp=%llu lp=%ld\n"), msg.message, msg.wParam, msg.lParam);
                             }
                             TranslateMessage(&msg);
                             DispatchMessage(&msg);
@@ -20000,7 +20000,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
     while (!postponedmsg.IsEmpty()) {
         msg = postponedmsg.RemoveHead();
         CString msgstr;
-        msgstr.Format(L"Postponed WM after graph close: msg=0x%x wp=%PRIu64 lp=%ld (pendingmedia=%d)\n", msg.message, msg.wParam, msg.lParam, bNextIsQueued);
+        msgstr.Format(L"Postponed WM after graph close: msg=0x%x wp=%llu lp=%ld (pendingmedia=%d)\n", msg.message, msg.wParam, msg.lParam, bNextIsQueued);
         TRACE(msgstr);
         if (USE_LOGGER(s)) {
             PLAYER_LOG(msgstr);
