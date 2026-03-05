@@ -16179,8 +16179,6 @@ void CMainFrame::CloseMediaPrivate()
 
     m_bIsMPCVRExclusiveMode = false;
 
-    ULONGLONG tc2 = GetTickCount64();
-
     // IMPORTANT: IVMRSurfaceAllocatorNotify/IVMRSurfaceAllocatorNotify9 has to be released before the VMR/VMR9, otherwise it will crash in Release()
     m_pMVRFG.Release();
     m_pMVRSR.Release();
@@ -16213,8 +16211,6 @@ void CMainFrame::CloseMediaPrivate()
     m_pAMTuner.Release();
     m_pCGB.Release();
 
-    ULONGLONG tc3 = GetTickCount64();
-
     m_pDVDC.Release();
     m_pDVDI.Release();
     m_pAMOP.Release();
@@ -16242,20 +16238,18 @@ void CMainFrame::CloseMediaPrivate()
         pSS.Release();
     }
 
-    ULONGLONG tc4 = GetTickCount64();
-
+    TRACE(_T("Releasing graph builder\n"));
     if (m_pGB) {
         m_pGB->RemoveFromROT();
         m_pGB.Release();
     }
+    TRACE(_T("Releasing graph builder complete\n"));
 
-    ULONGLONG tc5 = GetTickCount64();
-    ULONGLONG tc6 = tc5;
+    ULONGLONG tc2 = GetTickCount64();
 
     if (m_pGB_preview) {
         TRACE(_T("Releasing preview graph\n"));
         ReleasePreviewGraph();
-        tc6 = GetTickCount64();
     }
 
     m_pProv.Release();
@@ -16266,9 +16260,12 @@ void CMainFrame::CloseMediaPrivate()
 	
 	m_FontInstaller.UninstallFonts();
 
+    ULONGLONG tc3 = GetTickCount64();
+
     if (USE_LOGGER(s)) {
-        ULONGLONG tc7 = GetTickCount64();
-        PLAYER_LOG(_T("CMainFrame::CloseMediaPrivate - complete - %llums %llums %llums %llums %llums %llums"), tc2-tc1, tc3-tc2, tc4-tc3, tc5-tc4, tc6-tc5, tc7-tc6);
+        PLAYER_LOG(_T("CMainFrame::CloseMediaPrivate - complete - %llums %llumss"), tc2-tc1, tc3-tc2);
+    } else if (tc3-tc1 >= 2000) {
+        TRACE(_T("CMainFrame::CloseMediaPrivate - complete - %llums %llums\n"), tc2 - tc1, tc3 - tc2);
     }
 }
 
@@ -19734,7 +19731,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
             bool extendedwait = false;
             int pm = 0;
             while (processmsg) {
-                dwWait = MsgWaitForMultipleObjects(1, &handle, FALSE, (DWORD)waitdur, QS_POSTMESSAGE | QS_SENDMESSAGE);
+                dwWait = MsgWaitForMultipleObjects(1, &handle, FALSE, (DWORD)std::min(waitdur, 1500ULL), QS_POSTMESSAGE | QS_SENDMESSAGE);
                 switch (dwWait) {
                     case WAIT_OBJECT_0:
                         TRACE(_T("Graph abort successful\n"));
@@ -19745,7 +19742,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
                     case WAIT_OBJECT_0 + 1:
                         // we have a message - peek and dispatch it
                         pm = 0;
-                        while ((pm++ < 3) && PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+                        while ((pm++ < 3) && PeekMessage(&msg, (HWND)-1, 0, 0, PM_REMOVE)) {
                             if (msg.message == WM_QUIT) {
                                 processmsg = false;
                             } else if (msg.message == 0) {
@@ -19881,7 +19878,11 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
         bool extendedwait = false;
         int pm = 0;
         while (processmsg) {
-            dwWait = MsgWaitForMultipleObjects(1, &handle, FALSE, (DWORD)waitdur, QS_POSTMESSAGE | QS_SENDMESSAGE);
+            // This needs to at least wake for QS_SENDMESSAGE because otherwise graph won't terminate until this times out.
+            // It also needs PeekMessage, because that triggers internal dispatch of certain pending messages.
+            // A WM_GETICON (0x7f) message gets send during release of graph builder and that blocks main thread until that msg is processed.
+            // The WM_GETICON msg gets send when "enhanced taskbar features" is enabled, after each state change or progress update call using m_pTaskbarList
+            dwWait = MsgWaitForMultipleObjects(1, &handle, FALSE, (DWORD)std::min(waitdur, 1500ULL), QS_POSTMESSAGE | QS_SENDMESSAGE);
             switch (dwWait) {
                 case WAIT_OBJECT_0:
                     processmsg = false; // event received
@@ -19889,7 +19890,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
                     break;
                 case WAIT_OBJECT_0 + 1:
                     pm = 0;
-                    while ((pm++ < 3) && PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                    while ((pm++ < 3) && PeekMessage(&msg, (HWND)-1, 0, 0, PM_REMOVE)) {
                         if (msg.message == WM_QUIT) {
                             processmsg = false;
                         } else if (msg.message == 0) {
@@ -21647,9 +21648,14 @@ LRESULT CMainFrame::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
         ASSERT(false);
         return 0;
     }
+
+    if (GetLoadState() == MLS::CLOSING && message != WM_ENTERIDLE && message != WM_DRAWITEM) {
+        TRACE(_T("WindowProc during media close: message 0x%x value %d\n"), message, LOWORD(wParam));
+    }
+
     if (message == WM_ACTIVATE || message == WM_SETFOCUS || message == WM_GETMINMAXINFO) {
         if (AfxGetMyApp()->m_fClosingState) {
-            TRACE(_T("Dropped WindowProc: message %u value %d\n"), message, LOWORD(wParam));
+            TRACE(_T("Dropped WindowProc: message 0x%x value %d\n"), message, LOWORD(wParam));
             return 0;
         }
     }
