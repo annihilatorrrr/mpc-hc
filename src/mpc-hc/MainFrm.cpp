@@ -9121,12 +9121,12 @@ void CMainFrame::OnPlayPlaypause()
     if (GetLoadState() == MLS::LOADED) {
         OAFilterState fs = GetMediaState();
         if (fs == State_Running) {
-            SendMessage(WM_COMMAND, ID_PLAY_PAUSE);
+            PostMessage(WM_COMMAND, ID_PLAY_PAUSE);
         } else if (fs == State_Stopped || fs == State_Paused) {
-            SendMessage(WM_COMMAND, ID_PLAY_PLAY);
+            PostMessage(WM_COMMAND, ID_PLAY_PLAY);
         }
     } else if (GetLoadState() == MLS::CLOSED && !IsPlaylistEmpty()) {
-        SendMessage(WM_COMMAND, ID_PLAY_PLAY);        
+        PostMessage(WM_COMMAND, ID_PLAY_PLAY);        
     }
 }
 
@@ -9134,14 +9134,14 @@ void CMainFrame::OnApiPause()
 {
     OAFilterState fs = GetMediaState();
     if (fs == State_Running) {
-        SendMessage(WM_COMMAND, ID_PLAY_PAUSE);
+        PostMessage(WM_COMMAND, ID_PLAY_PAUSE);
     }
 }
 void CMainFrame::OnApiPlay()
 {
     OAFilterState fs = GetMediaState();
     if (fs == State_Stopped || fs == State_Paused) {
-        SendMessage(WM_COMMAND, ID_PLAY_PLAY);
+        PostMessage(WM_COMMAND, ID_PLAY_PLAY);
     }
 }
 
@@ -20648,9 +20648,12 @@ void CMainFrame::ProcessAPICommand(COPYDATASTRUCT* pCDS)
     switch (pCDS->dwData) {
         case CMD_OPENFILE:
             fn = CString((LPCWSTR)pCDS->lpData);
+            if (GetMediaState() == State_Running) {
+                MediaControlPause(true);
+            }
             if (CanSendToYoutubeDL(fn)) {
                 if (ProcessYoutubeDLURL(fn, false)) {
-                    OpenCurPlaylistItem();
+                    PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
                     return;
                 } else if (IsOnYDLWhitelist(fn)) {
                     m_closingmsg = L"Failed to extract stream URL with yt-dlp/youtube-dl";
@@ -20660,13 +20663,13 @@ void CMainFrame::ProcessAPICommand(COPYDATASTRUCT* pCDS)
             }
             fns.AddHead(fn);
             m_wndPlaylistBar.Open(fns, false);
-            OpenCurPlaylistItem();
+            PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
             break;
         case CMD_STOP:
             OnPlayStop();
             break;
         case CMD_CLOSEFILE:
-            CloseMedia();
+            PostMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
             break;
         case CMD_PLAYPAUSE:
             OnPlayPlaypause();
@@ -20692,25 +20695,30 @@ void CMainFrame::ProcessAPICommand(COPYDATASTRUCT* pCDS)
             m_wndPlaylistBar.Append(fns, true);
             break;
         case CMD_STARTPLAYLIST:
-            OpenCurPlaylistItem();
+            if (GetMediaState() == State_Running) {
+                MediaControlPause(true);
+            }
+            PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
             break;
         case CMD_CLEARPLAYLIST:
             m_wndPlaylistBar.Empty();
             break;
         case CMD_SETPOSITION:
-            rtPos = 10000 * REFERENCE_TIME(_wtof((LPCWSTR)pCDS->lpData) * 1000); //with accuracy of 1 ms
-            // imianz: quick and dirty trick
-            // Pause->SeekTo->Play (in place of SeekTo only) seems to prevents in most cases
-            // some strange video effects on avi files (ex. locks a while and than running fast).
-            if (!m_fAudioOnly && GetMediaState() == State_Running) {
-                SendMessage(WM_COMMAND, ID_PLAY_PAUSE);
-                SeekTo(rtPos);
-                SendMessage(WM_COMMAND, ID_PLAY_PLAY);
-            } else {
-                SeekTo(rtPos);
+            if (GetLoadState() == MLS::LOADED) {
+                rtPos = 10000 * REFERENCE_TIME(_wtof((LPCWSTR)pCDS->lpData) * 1000); //with accuracy of 1 ms
+                // imianz: quick and dirty trick
+                // Pause->SeekTo->Play (in place of SeekTo only) seems to prevents in most cases
+                // some strange video effects on avi files (ex. locks a while and than running fast).
+                if (!m_fAudioOnly && GetMediaState() == State_Running) {
+                    MediaControlPause(true);
+                    SeekTo(rtPos);
+                    MediaControlRun(true);
+                } else {
+                    SeekTo(rtPos);
+                }
+                // show current position overridden by play command
+                m_OSD.DisplayMessage(OSD_TOPLEFT, m_wndStatusBar.GetStatusTimer(), 2000);
             }
-            // show current position overridden by play command
-            m_OSD.DisplayMessage(OSD_TOPLEFT, m_wndStatusBar.GetStatusTimer(), 2000);
             break;
         case CMD_SETAUDIODELAY:
             rtPos = (REFERENCE_TIME)_wtol((LPCWSTR)pCDS->lpData) * 10000;
