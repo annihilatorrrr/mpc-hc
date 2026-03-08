@@ -5591,6 +5591,10 @@ void CMainFrame::OnDropFiles(CAtlList<CStringW>& slFiles, DROPEFFECT dropEffect)
         return;
     }
 
+    if (GetMediaState() == State_Running) {
+        MediaControlPause(true);
+    }
+
     // load http url with youtube-dl, if available
     if (CanSendToYoutubeDL(slFiles.GetHead())) {
         if (!CloseMediaBeforeOpen()) {
@@ -5614,7 +5618,7 @@ void CMainFrame::OnDropFiles(CAtlList<CStringW>& slFiles, DROPEFFECT dropEffect)
         m_wndPlaylistBar.Append(slFiles, true);
     } else {
         m_wndPlaylistBar.Open(slFiles, true);
-        OpenCurPlaylistItem();
+        PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
     }
 }
 
