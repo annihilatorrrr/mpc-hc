@@ -5107,14 +5107,16 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
             p->subs.AddTailList(&s.slSubs);
             m_wndPlaylistBar.OpenDVD(p->path);
         }
+        // ToDo: open indirectly
         OpenMedia(p);
         s.nCLSwitches &= ~CLSW_DVD;
     } else if (s.nCLSwitches & CLSW_CD) {
-        SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+        if (GetMediaState() == State_Running) {
+            MediaControlPause(true);
+        }
         fSetForegroundWindow = true;
 
         CAtlList<CString> sl;
-
         if (!s.slFiles.IsEmpty()) {
             GetOpticalDiskType(s.slFiles.GetHead()[0], sl);
         } else {
@@ -5130,19 +5132,22 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 
         m_wndPlaylistBar.Open(sl, true);
         applyRandomizeSwitch();
-        OpenCurPlaylistItem();
         s.nCLSwitches &= ~CLSW_CD;
+        PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
     } else if (s.nCLSwitches & CLSW_DEVICE) {
-        SendMessage(WM_COMMAND, ID_FILE_OPENDEVICE);
+        PostMessage(WM_COMMAND, ID_FILE_OPENDEVICE);
         s.nCLSwitches &= ~CLSW_DEVICE;
     } else if (!s.slFiles.IsEmpty()) {
+        if (GetMediaState() == State_Running) {
+            MediaControlPause(true);
+        }
+
         CAtlList<CString> sl;
         sl.AddTailList(&s.slFiles);
 
         PathUtils::ParseDirs(sl);
 
         bool fMulti = sl.GetCount() > 1;
-
         if (!fMulti) {
             sl.AddTailList(&s.slDubs);
         }
@@ -5150,7 +5155,6 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
         if (OpenBD(s.slFiles.GetHead())) {
             // Nothing more to do
         } else if (!fMulti && CPath(s.slFiles.GetHead() + _T("\\VIDEO_TS")).IsDirectory()) {
-            SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
             fSetForegroundWindow = true;
 
             CAutoPtr<OpenDVDData> p(DEBUG_NEW OpenDVDData());
@@ -5159,6 +5163,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
                 p->subs.AddTailList(&s.slSubs);
                 m_wndPlaylistBar.OpenDVD(p->path);
             }
+            // ToDo: open indirectly
             OpenMedia(p);
         } else {
             ULONGLONG tcnow = GetTickCount64();
@@ -5182,10 +5187,9 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 
                 if (s.nCLSwitches & (CLSW_OPEN | CLSW_PLAY)) {
                     m_wndPlaylistBar.SetLast();
-                    OpenCurPlaylistItem();
+                    PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
                 }
             } else {
-                //SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
                 fSetForegroundWindow = true;
 
                 if (fMulti || sl.GetCount() == 1) {
@@ -5213,7 +5217,14 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
                 if (sl.GetCount() != 1 || !IsPlaylistFile(sl.GetHead())) { //playlists already set first pos (or saved pos)
                     m_wndPlaylistBar.SetFirst();
                 }
-                OpenCurPlaylistItem((s.nCLSwitches & CLSW_STARTVALID) ? s.rtStart : 0, false, s.abRepeat);
+
+                if ((s.nCLSwitches & CLSW_STARTVALID) && s.rtStart > 0 || s.abRepeat) {
+                    m_rtReloadPos = s.rtStart;
+                    reloadABRepeat = s.abRepeat;
+                    m_iReloadAudioIdx = -1;
+                    m_iReloadSubIdx = -1;
+                }
+                PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
 
                 s.nCLSwitches &= ~CLSW_STARTVALID;
                 s.rtStart = 0;
@@ -5221,7 +5232,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
             s.nCLSwitches &= ~CLSW_ADD;
         }
     } else if ((s.nCLSwitches & CLSW_PLAY) && !IsPlaylistEmpty()) {
-        OpenCurPlaylistItem();
+        PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
     } else {
         applyRandomizeSwitch();
     }
@@ -22105,7 +22116,7 @@ bool CMainFrame::OpenBD(CString Path)
                 }
 
                 m_wndPlaylistBar.Append(sl, false);
-                OpenCurPlaylistItem();
+                PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
                 return true;
             }
         }
