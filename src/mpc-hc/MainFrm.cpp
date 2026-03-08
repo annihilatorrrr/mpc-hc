@@ -2750,6 +2750,11 @@ LRESULT CMainFrame::OnDoLogOff(WPARAM wParam, LPARAM lParam)
 
 LRESULT CMainFrame::OnDoOpenCurPlaylist(WPARAM wParam, LPARAM lParam)
 {
+    MSG msg;
+    while (PeekMessage(&msg, nullptr, WM_MPC_OPENCURPLAYLIST, WM_MPC_OPENCURPLAYLIST, PM_REMOVE)) {
+        TRACE(L"Dropping pending OpenCurPlaylist message\n");
+    }
+
     OpenCurPlaylistItem();
 
     return S_OK;
