@@ -12770,22 +12770,22 @@ void CMainFrame::SetPreviewVideoPosition() {
             h = MulDiv(w, arxy.cy, arxy.cx);
         }
      
-        if (m_pMFVDC_preview) {
+        if (m_pMFVDC_preview.p) {
             m_pMFVDC_preview->SetVideoPosition(nullptr, wr);
             m_pMFVDC_preview->SetAspectRatioMode(MFVideoARMode_PreservePicture);
         }
-        if (m_pVMR9C_preview) {
+        if (m_pVMR9C_preview.p) {
             m_pVMR9C_preview->SetVideoPosition(nullptr, wr);
             m_pVMR9C_preview->SetAspectRatioMode(VMR9ARMode_LetterBox);
         }
-        if (m_pCAP2_preview) {
+        if (m_pCAP2_preview.p) {
             m_pCAP2_preview->SetPosition(wr, wr);
         }
-        if (m_pBV_preview) {
+        if (m_pBV_preview.p) {
             m_pBV_preview->SetDefaultSourcePosition();
             m_pBV_preview->SetDestinationPosition(0, 0, w, h);
         }
-        if (m_pVW_preview) {
+        if (m_pVW_preview.p) {
             m_pVW_preview->SetWindowPosition(wr.left, wr.top, wr.Width(), wr.Height());
         }
     }
