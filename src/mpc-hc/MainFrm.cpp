@@ -4618,18 +4618,18 @@ void CMainFrame::ToolbarContextMenu(int iItem, int nIndex, CRect buttonRect) {
 }
 
 void CMainFrame::OnUpdateAudiosButton(CCmdUI* pCmdUI) {
-    pCmdUI->Enable(GetLoadState() != MLS::LOADING && m_audiosMenu.GetMenuItemCount() > 0);
+    pCmdUI->Enable(IsStateLoaded() && m_audiosMenu.GetMenuItemCount() > 0);
 }
 
 void CMainFrame::OnUpdateSubtitlesButton(CCmdUI* pCmdUI) {
-    pCmdUI->Enable(GetLoadState() != MLS::LOADING && m_subtitlesMenu.GetMenuItemCount() > 0);
+    pCmdUI->Enable(IsStateLoaded() && m_subtitlesMenu.GetMenuItemCount() > 0);
 }
 
 void CMainFrame::OnStreamAudio(UINT nID)
 {
     nID -= ID_STREAM_AUDIO_NEXT;
 
-    if (GetLoadState() != MLS::LOADED) {
+    if (!IsStateLoaded()) {
         return;
     }
 
@@ -4852,7 +4852,7 @@ INT_PTR CMainFrame::DoFileDialogWithLastFolder(CFileDialog& fd, CStringW& lastPa
 
 void CMainFrame::OnFileOpenQuick()
 {
-    if (GetLoadState() == MLS::LOADING || !IsWindow(m_wndPlaylistBar)) {
+    if (!IsStateClosedOrLoaded() || !IsWindow(m_wndPlaylistBar)) {
         return;
     }
 
@@ -4907,7 +4907,7 @@ void CMainFrame::OnFileOpenQuick()
 
 void CMainFrame::OnFileOpenmedia()
 {
-    if (GetLoadState() == MLS::LOADING || !IsWindow(m_wndPlaylistBar) || IsD3DFullScreenMode()) {
+    if (!IsStateClosedOrLoaded() || !IsWindow(m_wndPlaylistBar) || IsD3DFullScreenMode()) {
         return;
     }
 
@@ -4998,7 +4998,7 @@ LRESULT CMainFrame::OnMPCVRSwitchFullscreen(WPARAM wParam, LPARAM lParam)
 
 void CMainFrame::OnUpdateFileOpen(CCmdUI* pCmdUI)
 {
-    pCmdUI->Enable(GetLoadState() != MLS::LOADING);
+    pCmdUI->Enable(IsStateClosedOrLoaded());
 }
 
 BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
@@ -5310,7 +5310,7 @@ void CMainFrame::OpenDVDOrBD(CStringW path) {
 
 void CMainFrame::OnFileOpendvd()
 {
-    if ((GetLoadState() == MLS::LOADING) || IsD3DFullScreenMode()) {
+    if (!IsStateClosedOrLoaded() || IsD3DFullScreenMode()) {
         return;
     }
 
@@ -5340,7 +5340,7 @@ void CMainFrame::OnFileOpendevice()
 {
     const CAppSettings& s = AfxGetAppSettings();
 
-    if (GetLoadState() == MLS::LOADING) {
+    if (!IsStateClosedOrLoaded()) {
         return;
     }
 
@@ -8976,17 +8976,17 @@ void CMainFrame::OnPlayPlay()
     m_bOpeningInAutochangedMonitorMode = false;
     m_bPausedForAutochangeMonitorMode = false;
 
-    if (GetLoadState() == MLS::CLOSED) {
+    if (!IsStateClosedOrLoaded()) {
+        return;
+    }
+
+    if (IsStateClosed()) {
         m_bFirstPlay = false;
         OpenCurPlaylistItem();
         return;
     }
 
-    if (GetLoadState() == MLS::LOADING) {
-        return;
-    }
-
-    if (GetLoadState() == MLS::LOADED) {
+    if (IsStateLoaded()) {
         // If playback was previously stopped or ended, we need to reset the window size
         bool bVideoWndNeedReset = GetMediaState() == State_Stopped || m_fEndOfStream;
 
@@ -19537,7 +19537,7 @@ bool CMainFrame::CloseMediaBeforeOpen()
 {
     if (m_eMediaLoadState == MLS::LOADED || m_eMediaLoadState == MLS::LOADING) {
         CloseMedia(true);
-    } else if (m_eMediaLoadState == MLS::CLOSING || m_eMediaLoadState == MLS::FAILING) {
+    } else if (m_eMediaLoadState == MLS::CLOSING || m_eMediaLoadState == MLS::FAILING || m_eMediaLoadState == MLS::ABORTING) {
         // was already busy closing, wait a little
         for (int i = 0; i < 10; i++) {
             Sleep(250);
@@ -19715,13 +19715,15 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
     // abort if loading
     bool bGraphTerminated = false;
     if (GetLoadState() == MLS::LOADING) {
+        // tell OpenMediaPrivate() that we want to abort
+        m_fOpeningAborted = true;
+
+        SetLoadState(MLS::ABORTING);
+
         TRACE(_T("Media is still loading. Aborting graph.\n"));
         if (USE_LOGGER(s)) {
             PLAYER_LOG(_T("CMainFrame::CloseMedia - Need to abort graph creation"));
         }
-
-        // tell OpenMediaPrivate() that we want to abort
-        m_fOpeningAborted = true;
 
         // close pin connection error dialog
         if (mediaTypesErrorDlg) {
@@ -20277,6 +20279,21 @@ void CMainFrame::SetLoadState(MLS eState)
 inline MLS CMainFrame::GetLoadState() const
 {
     return m_eMediaLoadState;
+}
+
+inline bool CMainFrame::IsStateLoaded()
+{
+    return m_eMediaLoadState == MLS::LOADED;
+}
+
+inline bool CMainFrame::IsStateClosed()
+{
+    return m_eMediaLoadState == MLS::CLOSED;
+}
+
+inline bool CMainFrame::IsStateClosedOrLoaded()
+{
+    return m_eMediaLoadState == MLS::CLOSED || m_eMediaLoadState == MLS::LOADED;
 }
 
 void CMainFrame::SetPlayState(MPC_PLAYSTATE iState)
@@ -21350,7 +21367,7 @@ void CMainFrame::JumpOfNSeconds(int nSeconds)
 
 void CMainFrame::OnFileOpendirectory()
 {
-    if (GetLoadState() == MLS::LOADING || !IsWindow(m_wndPlaylistBar)) {
+    if (!IsStateClosedOrLoaded() || !IsWindow(m_wndPlaylistBar)) {
         return;
     }
 

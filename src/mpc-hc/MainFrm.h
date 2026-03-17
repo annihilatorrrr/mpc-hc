@@ -83,6 +83,7 @@ enum class MLS {
     LOADED,
     CLOSING,
     FAILING,
+    ABORTING,
 };
 
 enum {
@@ -1249,6 +1250,9 @@ public:
 
     void        SetLoadState(MLS eState);
     MLS         GetLoadState() const;
+    bool        IsStateLoaded();
+    bool        IsStateClosed();
+    bool        IsStateClosedOrLoaded();
     void        SetPlayState(MPC_PLAYSTATE iState);
     bool        CreateFullScreenWindow(bool isD3D=true);
     void        SetupEVRColorControl();
