@@ -4605,6 +4605,10 @@ msgctxt "IDS_AG_TOGGLE_DEFAULT_SUBTITLE_STYLE"
 msgid "Toggle Override Default Style"
 msgstr "기본 스타일 덮어쓰기 전환"
 
+msgctxt "IDS_AG_TOGGLE_OVERRIDE_SUBTITLE_STYLES"
+msgid "Toggle Override All Styles"
+msgstr ""
+
 msgctxt "IDS_PPAGEADVANCED_LOOP_FOLDER_NEXT_FILE"
 msgid "Loop back to first file in folder after playing the last file."
 msgstr "마지막 파일을 재생한 후, 폴더의 2번째 파일로 루프백합니다."

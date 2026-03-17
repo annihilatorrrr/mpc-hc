@@ -4582,6 +4582,10 @@ msgctxt "IDS_AG_TOGGLE_DEFAULT_SUBTITLE_STYLE"
 msgid "Toggle Override Default Style"
 msgstr "切換覆寫預設樣式"
 
+msgctxt "IDS_AG_TOGGLE_OVERRIDE_SUBTITLE_STYLES"
+msgid "Toggle Override All Styles"
+msgstr ""
+
 msgctxt "IDS_PPAGEADVANCED_LOOP_FOLDER_NEXT_FILE"
 msgid "Loop back to first file in folder after playing the last file."
 msgstr "播放完資料夾中的最後一個檔案後，從第一個檔案繼續播放。"

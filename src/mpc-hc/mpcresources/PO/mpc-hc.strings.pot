@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MPC-HC\n"
-"POT-Creation-Date: 2026-03-15 15:49:47+0000\n"
+"POT-Creation-Date: 2026-03-17 15:40:00+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4461,6 +4461,10 @@ msgstr ""
 
 msgctxt "IDS_AG_TOGGLE_DEFAULT_SUBTITLE_STYLE"
 msgid "Toggle Override Default Style"
+msgstr ""
+
+msgctxt "IDS_AG_TOGGLE_OVERRIDE_SUBTITLE_STYLES"
+msgid "Toggle Override All Styles"
 msgstr ""
 
 msgctxt "IDS_PPAGEADVANCED_LOOP_FOLDER_NEXT_FILE"

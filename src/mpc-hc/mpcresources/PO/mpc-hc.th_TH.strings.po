@@ -4585,6 +4585,10 @@ msgctxt "IDS_AG_TOGGLE_DEFAULT_SUBTITLE_STYLE"
 msgid "Toggle Override Default Style"
 msgstr ""
 
+msgctxt "IDS_AG_TOGGLE_OVERRIDE_SUBTITLE_STYLES"
+msgid "Toggle Override All Styles"
+msgstr ""
+
 msgctxt "IDS_PPAGEADVANCED_LOOP_FOLDER_NEXT_FILE"
 msgid "Loop back to first file in folder after playing the last file."
 msgstr ""
