@@ -4,14 +4,14 @@
 # Translators:
 # MPC HC <adiposegithub@gmail.com>, 2020
 # CoolCmd, 2023
-# Alexander Stankovich, 2025
+# Alexander Stankovich, 2026
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: MPC-HC\n"
-"POT-Creation-Date: 2025-09-18 18:34:29+0000\n"
+"POT-Creation-Date: 2026-01-20 04:47:07+0000\n"
 "PO-Revision-Date: 2020-01-02 07:46+0000\n"
-"Last-Translator: Alexander Stankovich, 2025\n"
+"Last-Translator: Alexander Stankovich, 2026\n"
 "Language-Team: Russian (https://app.transifex.com/mpchc/teams/106126/ru/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -4123,12 +4123,16 @@ msgstr "Готов..."
 msgctxt "IDS_CMD_PNS"
 msgid "/pns \"name\"\tSpecify PnS Frame Adjust Preset to use (for example: /pns \"%s\")"
 msgstr ""
+"/pns \"название\"\tВыбрать предустановку размера и положения кадра для "
+"использования (например: /pns \"%s\")"
 
 msgctxt "IDS_CMD_PNS_VALUES"
 msgid ""
 "/pns \"px,py,zx,zy\"\tSpecify direct position and zoom values in the format "
 "\"px,py,zx,zy\""
 msgstr ""
+"/pns \"px,py,zx,zy\"\tУказать значения позиции и масштаба кадра в формате "
+"\"пx,пy,мx,мy\""
 
 msgctxt "IDS_CMD_ICONASSOC"
 msgid "/iconsassoc\tReassociate format icons"
@@ -4399,6 +4403,8 @@ msgstr ""
 msgctxt "IDS_CMD_HIBERNATE"
 msgid "/hibernate\tHibernate operating system after playback"
 msgstr ""
+"/hibernate\tПеревести компьютер в спящий режим после окончания "
+"воспроизведения"
 
 msgctxt "IDS_CMD_LOGOFF"
 msgid "/logoff\t\tLog off after playback"
@@ -4620,15 +4626,15 @@ msgstr "/shaderpreset \"Pr\"\tИспользовать предустановк�
 
 msgctxt "IDS_TOOLBAR_ALIGNMENT_LEFT"
 msgid "Left"
-msgstr ""
+msgstr "Влево"
 
 msgctxt "IDS_TOOLBAR_ALIGNMENT_CENTER"
 msgid "Center"
-msgstr ""
+msgstr "По центру"
 
 msgctxt "IDS_TOOLBAR_ALIGNMENT_RIGHT"
 msgid "Right"
-msgstr ""
+msgstr "Вправо"
 
 msgctxt "IDS_MESSAGEBOX_CANCEL"
 msgid "Cancel"
@@ -5021,7 +5027,7 @@ msgstr "Дорожка субтитров"
 
 msgctxt "IDS_FAVORITES_UNSAVED_CHANGES"
 msgid "Do you want to save changes to your favorites?"
-msgstr ""
+msgstr "Вы хотите сохранить изменения в избранном?"
 
 msgctxt "IDS_AG_EXIT_FULLSCREEN"
 msgid "Exit Fullscreen"
