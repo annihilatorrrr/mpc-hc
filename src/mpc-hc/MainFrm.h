@@ -449,6 +449,8 @@ private:
 
     bool m_fEndOfStream;
     ULONGLONG m_dwLastPause;
+
+    CString m_reloadFilename;
     REFERENCE_TIME m_rtReloadPos;
     int m_iReloadAudioIdx;
     int m_iReloadSubIdx;

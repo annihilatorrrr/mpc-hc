@@ -832,6 +832,7 @@ CMainFrame::CMainFrame()
     , m_nVolumeBeforeFrameStepping(0)
     , m_fEndOfStream(false)
     , m_dwLastPause(0ULL)
+    , m_reloadFilename(L"")
     , m_rtReloadPos(-1)
     , m_iReloadAudioIdx(-1)
     , m_iReloadSubIdx(-1)
@@ -4417,6 +4418,7 @@ LRESULT CMainFrame::OnOpenMediaFailed(WPARAM wParam, LPARAM lParam)
     m_bOpenMediaActive = false;
     m_OpenMediaFailedCount++;
 
+    m_reloadFilename.Empty();
     m_rtReloadPos = -1;
     reloadABRepeat = ABRepeat();
     m_iReloadAudioIdx = -1;
@@ -5208,6 +5210,13 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 
                 if (s.nCLSwitches & (CLSW_OPEN | CLSW_PLAY)) {
                     m_wndPlaylistBar.SetLast();
+                    if ((s.nCLSwitches & CLSW_STARTVALID) && s.rtStart > 0 || s.abRepeat) {
+                        m_reloadFilename = m_wndPlaylistBar.GetCurFileName();
+                        m_rtReloadPos = s.rtStart;
+                        reloadABRepeat = s.abRepeat;
+                        m_iReloadAudioIdx = -1;
+                        m_iReloadSubIdx = -1;
+                    }
                     PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
                 }
             } else {
@@ -5240,6 +5249,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
                 }
 
                 if ((s.nCLSwitches & CLSW_STARTVALID) && s.rtStart > 0 || s.abRepeat) {
+                    m_reloadFilename = m_wndPlaylistBar.GetCurFileName();
                     m_rtReloadPos = s.rtStart;
                     reloadABRepeat = s.abRepeat;
                     m_iReloadAudioIdx = -1;
@@ -5253,6 +5263,13 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
             s.nCLSwitches &= ~CLSW_ADD;
         }
     } else if ((s.nCLSwitches & CLSW_PLAY) && !IsPlaylistEmpty()) {
+        if ((s.nCLSwitches & CLSW_STARTVALID) && s.rtStart > 0 || s.abRepeat) {
+            m_reloadFilename = m_wndPlaylistBar.GetCurFileName();
+            m_rtReloadPos = s.rtStart;
+            reloadABRepeat = s.abRepeat;
+            m_iReloadAudioIdx = -1;
+            m_iReloadSubIdx = -1;
+        }
         PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
     } else {
         applyRandomizeSwitch();
@@ -5452,6 +5469,7 @@ void CMainFrame::OnFileReopen()
             m_rtReloadPos = m_wndSeekBar.HasDuration() ? m_wndSeekBar.GetPos() : 0;
         }
         reloadABRepeat = abRepeat;
+        m_reloadFilename = lastOpenFile;
     }
 
     PostMessage(WM_MPC_OPENCURPLAYLIST, 1, 0);
@@ -9013,6 +9031,7 @@ void CMainFrame::OnPlayPlay()
                 if (!m_fAudioOnly && m_dwLastPause && m_wndSeekBar.HasDuration() && s.iReloadAfterLongPause > 0) {
                     // after long pause reload video file to avoid playback issues on some systems (with buggy drivers)
                     if (GetTickCount64() - m_dwLastPause >= s.iReloadAfterLongPause * 60 * 1000ULL) {
+                        m_reloadFilename = lastOpenFile;
                         m_rtReloadPos = m_wndSeekBar.GetPos();
                         reloadABRepeat = abRepeat;
                         m_iReloadAudioIdx = GetCurrentAudioTrackIdx();
@@ -13895,13 +13914,15 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
             break;
         }
         if (bMainFile) {
-            if (m_rtReloadPos >= 0 && fn != lastOpenFile) {
+            if (m_rtReloadPos >= 0 && fn != m_reloadFilename) {
                 // clear info used for reloading
                 m_rtReloadPos = -1;
                 reloadABRepeat = ABRepeat();
                 m_iReloadAudioIdx = -1;
                 m_iReloadSubIdx = -1;
             }
+            m_reloadFilename.Empty();
+
             // store info, this is used for skipping to next/previous file
             pOFD->title = fn;
             lastOpenFile = fn;
@@ -21836,6 +21857,7 @@ UINT CMainFrame::OnPowerBroadcast(UINT nPowerEvent, LPARAM nEventData)
             if (GetLoadState() == MLS::LOADED) {
                 if (AfxGetAppSettings().iReloadAfterLongPause >= 0) {
                     // save position and close
+                    m_reloadFilename = lastOpenFile;
                     m_rtReloadPos = m_wndSeekBar.HasDuration() ? m_wndSeekBar.GetPos() : 0;
                     reloadABRepeat = abRepeat;
                     m_iReloadAudioIdx = GetCurrentAudioTrackIdx();
