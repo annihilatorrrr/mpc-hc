@@ -19612,7 +19612,7 @@ bool CMainFrame::DisplayChange()
 
 bool CMainFrame::CloseMediaBeforeOpen()
 {
-    if (m_eMediaLoadState == MLS::LOADED || m_eMediaLoadState == MLS::LOADING) {
+    if (m_eMediaLoadState == MLS::LOADED || m_eMediaLoadState == MLS::LOADING || m_eMediaLoadState == MLS::FAILING) {
         CloseMedia(true);
     } else if (m_eMediaLoadState != MLS::CLOSED) {
         PLAYER_LOG(_T("CMainFrame::CloseMediaBeforeOpen - unexpected loadstate %d"), m_eMediaLoadState);
@@ -19663,7 +19663,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
         TRACE(_T("Ignoring duplicate close action.\n"));
         return;
     }
-    if (m_eMediaLoadState == MLS::CLOSING || m_eMediaLoadState == MLS::FAILING || m_eMediaLoadState == MLS::ABORTING) {
+    if (m_eMediaLoadState == MLS::CLOSING || m_eMediaLoadState == MLS::ABORTING) {
         TRACE(_T("Duplicate close action.\n"));
         if (USE_LOGGER(s)) {
             PLAYER_LOG(_T("CMainFrame::CloseMedia (thread %lu) - unexpected loadstate"), GetCurrentThreadId());
