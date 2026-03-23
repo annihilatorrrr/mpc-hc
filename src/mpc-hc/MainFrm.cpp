@@ -4903,7 +4903,9 @@ void CMainFrame::OnFileOpenQuick()
         fMultipleFiles = true;
     }
 
-    SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+    if (!CloseMediaBeforeOpen()) {
+        return;
+    }
 
     if (IsIconic()) {
         ShowWindow(SW_RESTORE);
@@ -5432,7 +5434,9 @@ void CMainFrame::OnFileOpenOpticalDisk(UINT nID)
             if (OpticalDisk_BD == discType || OpticalDisk_DVDVideo == discType) {
                 OpenDVDOrBD(CStringW(drive) + L":\\");
             } else {
-                SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+                if (!CloseMediaBeforeOpen()) {
+                    return;
+                }
                 SetForegroundWindow();
 
                 if (IsIconic()) {
@@ -11517,25 +11521,32 @@ void CMainFrame::OnFavoritesFile(UINT nID)
 
 void CMainFrame::PlayFavoriteFile(const CString& fav)
 {
-    SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
-
     CAtlList<CString> args;
     REFERENCE_TIME rtStart = 0;
     FileFavorite ff = ParseFavoriteFile(fav, args, &rtStart);
 
     auto firstFile = args.GetHead();
-    if (!m_wndPlaylistBar.SelectFileInPlaylist(firstFile) &&
-        (!CanSendToYoutubeDL(firstFile) ||
-         !ProcessYoutubeDLURL(firstFile, false))) {
-        m_wndPlaylistBar.Open(args, false);
+    if (!m_wndPlaylistBar.SelectFileInPlaylist(firstFile)) {
+        if (CanSendToYoutubeDL(firstFile)) {
+            if (!CloseMediaBeforeOpen()) {
+                return;
+            }
+            if (!ProcessYoutubeDLURL(firstFile, false)) {
+                m_wndPlaylistBar.Open(args, false);
+            }
+        } else {
+            m_wndPlaylistBar.Open(args, false);
+        }
     }
 
     m_wndPlaylistBar.SetCurLabel(ff.Name);
 
-    if (GetPlaybackMode() == PM_FILE && m_lastOMD && args.GetHead() == m_lastOMD->title) {
-        m_pMS->SetPositions(&rtStart, AM_SEEKING_AbsolutePositioning, nullptr, AM_SEEKING_NoPositioning);
-        OnPlayPlay();
+    if (IsStateLoaded() && GetPlaybackMode() == PM_FILE && m_lastOMD && args.GetHead() == m_lastOMD->title) {
+        DoSeekTo(rtStart);
     } else {
+        if (!CloseMediaBeforeOpen()) {
+            return;
+        }
         OpenCurPlaylistItem(rtStart);
     }
 
