@@ -5121,7 +5121,9 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
     };
 
     if ((s.nCLSwitches & CLSW_DVD) && !s.slFiles.IsEmpty()) {
-        SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+        if (!CloseMediaBeforeOpen()) {
+            return TRUE;
+        }
         fSetForegroundWindow = true;
 
         CAutoPtr<OpenDVDData> p(DEBUG_NEW OpenDVDData());
@@ -5369,13 +5371,17 @@ void CMainFrame::OnFileOpendvd()
 
 void CMainFrame::OnFileOpendevice()
 {
-    const CAppSettings& s = AfxGetAppSettings();
-
     if (!IsStateClosedOrLoaded()) {
         return;
     }
+    if (!m_pAMTuner) { // no need to close if changing channel
+        if (!CloseMediaBeforeOpen()) {
+            return;
+        }
+    }
 
-    SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+    const CAppSettings& s = AfxGetAppSettings();
+
     SetForegroundWindow();
 
     if (IsIconic()) {
@@ -5400,6 +5406,10 @@ void CMainFrame::OnFileOpendevice()
 
 void CMainFrame::OnFileOpenOpticalDisk(UINT nID)
 {
+    if (!IsStateClosedOrLoaded()) {
+        return;
+    }
+
     nID -= ID_FILE_OPEN_OPTICAL_DISK_START;
 
     nID++;
@@ -11650,6 +11660,10 @@ void CMainFrame::OnFavoritesDVD(UINT nID)
 
 void CMainFrame::PlayFavoriteDVD(CString fav)
 {
+    if (!CloseMediaBeforeOpen()) {
+        return;
+    }
+
     CAtlList<CString> args;
     CString fn;
     CDVDStateStream stream;
@@ -11663,8 +11677,6 @@ void CMainFrame::PlayFavoriteDVD(CString fav)
         CStringToBin(state, stream.m_data);
     }
     fn = args.RemoveHead(); // path
-
-    SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
 
     CComPtr<IDvdState> pDvdState;
     HRESULT hr = OleLoadFromStream((IStream*)&stream, IID_PPV_ARGS(&pDvdState));
