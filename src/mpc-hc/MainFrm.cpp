@@ -18269,7 +18269,7 @@ bool CMainFrame::SetSubtitle(int i, bool bIsOffset /*= false*/, bool bDisplayMes
 
 void CMainFrame::UpdateSubtitleColorInfo()
 {
-    if (!m_pCAP || !m_pCurrentSubInput.pSubStream) {
+    if (!IsStateLoaded() || !m_pCAP || !m_pCurrentSubInput.pSubStream) {
         return;
     }
 
