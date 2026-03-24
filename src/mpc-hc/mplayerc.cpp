@@ -1531,9 +1531,8 @@ static blocked_module_t moduleblocklist[] = {
     {_T("\\lvcod64.dll"), 12},
     // ProxyCodec64
     {_T("\\pxc0.dll"), 9},
-#else
-    {_T("\\mlc.dll"), 8},
 #endif
+    {_T("\\mlc.dll"), 8},
     {_T("\\ff_vfw.dll"), 11},
     {_T("\\tsccvid64.dll"), 14},
     {_T("\\lameacm.acm"), 12},
