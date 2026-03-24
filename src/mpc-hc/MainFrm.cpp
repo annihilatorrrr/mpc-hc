@@ -1995,8 +1995,11 @@ void CMainFrame::OnDisplayChange() // untested, not sure if it's working...
     if (GetLoadState() == MLS::LOADED) {
         if (m_bOpenedThroughThread && m_pGraphThread && m_pGraphThread->m_hThread) {
             CAMMsgEvent e;
-            m_pGraphThread->PostThreadMessage(CGraphThread::TM_DISPLAY_CHANGE, (WPARAM)0, (LPARAM)&e);
-            e.WaitMsg();
+            if (m_pGraphThread->PostThreadMessage(CGraphThread::TM_DISPLAY_CHANGE, (WPARAM)0, (LPARAM)&e)) {
+                e.WaitMsg();
+            } else {
+                DisplayChange();
+            }
         } else {
             DisplayChange();
         }
@@ -3536,8 +3539,11 @@ LRESULT CMainFrame::OnResetDevice(WPARAM wParam, LPARAM lParam)
 
     if (m_bOpenedThroughThread && m_pGraphThread && m_pGraphThread->m_hThread) {
         CAMMsgEvent e;
-        m_pGraphThread->PostThreadMessage(CGraphThread::TM_RESET, (WPARAM)0, (LPARAM)&e);
-        e.WaitMsg();
+        if (m_pGraphThread->PostThreadMessage(CGraphThread::TM_RESET, (WPARAM)0, (LPARAM)&e)) {
+            e.WaitMsg();
+        } else {
+            ResetDevice();
+        }
     } else {
         ResetDevice();
     }
@@ -19593,7 +19599,6 @@ void CMainFrame::OpenMedia(CAutoPtr<OpenMediaData> pOMD)
             bUseThread = false;
             m_pGraphThread = nullptr;
             pOMD.Attach(pOMDCopy);
-            FLUSH_LOGGER();
             ASSERT(false);
         }
     }
@@ -19983,11 +19988,18 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
     m_bSettingUpMenus = false;
 
     // initiate graph destruction
-    if (m_bOpenedThroughThread && m_pGraphThread && m_pGraphThread->m_hThread && !bGraphTerminated) {
+    bool usethread = m_bOpenedThroughThread && m_pGraphThread && m_pGraphThread->m_hThread && !bGraphTerminated;
+    if (usethread) {
         // either opening or closing has to be blocked to prevent reentering them, closing is the better choice
-        VERIFY(m_evClosePrivateFinished.Reset());
-        VERIFY(m_pGraphThread->PostThreadMessage(CGraphThread::TM_CLOSE, (WPARAM)0, (LPARAM)0));
-
+        if (!m_evClosePrivateFinished.Reset() || !m_pGraphThread->PostThreadMessage(CGraphThread::TM_CLOSE, (WPARAM)0, (LPARAM)0)) {
+            DWORD lasterror = GetLastError();
+            PLAYER_LOG(_T("CMainFrame::CloseMedia - graphthread error %d"), lasterror);
+            FLUSH_LOGGER();
+            usethread = false;
+            ASSERT(false);
+        }
+    }
+    if (usethread) {
         HANDLE handle = m_evClosePrivateFinished;
         DWORD dwWait;
         ULONGLONG waitdur = 6000ULL;
