@@ -2491,9 +2491,9 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
             if (GetPlaybackMode() == PM_DVD) { // we also use this timer to update the info panel for DVD playback
                 ULONG ulAvailable, ulCurrent;
 
-                // Location
-
                 CString Location(_T('-'));
+                CString Audio(_T('-'));
+                CString Video(_T('-'));
 
                 DVD_PLAYBACK_LOCATION2 loc;
                 ULONG ulNumOfVolumes, ulVolume;
@@ -2501,6 +2501,7 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
                 ULONG ulNumOfTitles;
                 ULONG ulNumOfChapters;
 
+                // Location
                 if (SUCCEEDED(m_pDVDI->GetCurrentLocation(&loc))
                         && SUCCEEDED(m_pDVDI->GetNumberOfChapters(loc.TitleNum, &ulNumOfChapters))
                         && SUCCEEDED(m_pDVDI->GetDVDVolumeInfo(&ulNumOfVolumes, &ulVolume, &Side, &ulNumOfTitles))) {
@@ -2525,14 +2526,8 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
                     }
                 }
 
-                m_wndInfoBar.SetLine(StrRes(IDS_INFOBAR_LOCATION), Location);
-
                 // Video
-
-                CString Video(_T('-'));
-
                 DVD_VideoAttributes VATR;
-
                 if (SUCCEEDED(m_pDVDI->GetCurrentAngle(&ulAvailable, &ulCurrent))
                         && SUCCEEDED(m_pDVDI->GetCurrentVideoAttributes(&VATR))) {
                     Video.Format(IDS_MAINFRM_10,
@@ -2543,14 +2538,8 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
                     m_statusbarVideoFormat = VATR.Compression == DVD_VideoCompression_MPEG1 ? L"MPG1" : VATR.Compression == DVD_VideoCompression_MPEG2 ? L"MPG2" : L"";
                 }
 
-                m_wndInfoBar.SetLine(StrRes(IDS_INFOBAR_VIDEO), Video);
-
                 // Audio
-
-                CString Audio(_T('-'));
-
                 DVD_AudioAttributes AATR;
-
                 if (SUCCEEDED(m_pDVDI->GetCurrentAudio(&ulAvailable, &ulCurrent))
                         && SUCCEEDED(m_pDVDI->GetAudioAttributes(ulCurrent, &AATR))) {
                     CString lang;
@@ -2597,21 +2586,21 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
                         : IDB_AUDIOTYPE_NOAUDIO);
                 }
 
-                m_wndInfoBar.SetLine(StrRes(IDS_INFOBAR_AUDIO), Audio);
+                if (m_wndInfoBar.IsVisible()) {
+                    m_wndInfoBar.SetLine(StrRes(IDS_INFOBAR_LOCATION), Location);
+                    m_wndInfoBar.SetLine(StrRes(IDS_INFOBAR_VIDEO), Video);
+                    m_wndInfoBar.SetLine(StrRes(IDS_INFOBAR_AUDIO), Audio);
 
-                // Subtitles
-
-                CString Subtitles(_T('-'));
-
-                BOOL bIsDisabled;
-                DVD_SubpictureAttributes SATR;
-
-                if (SUCCEEDED(m_pDVDI->GetCurrentSubpicture(&ulAvailable, &ulCurrent, &bIsDisabled))
+                    // Subtitles
+                    CString Subtitles(_T('-'));
+                    BOOL bIsDisabled;
+                    DVD_SubpictureAttributes SATR;
+                    if (SUCCEEDED(m_pDVDI->GetCurrentSubpicture(&ulAvailable, &ulCurrent, &bIsDisabled))
                         && SUCCEEDED(m_pDVDI->GetSubpictureAttributes(ulCurrent, &SATR))) {
-                    CString lang;
-                    GetLocaleString(SATR.Language, LOCALE_SENGLANGUAGE, lang);
+                        CString lang;
+                        GetLocaleString(SATR.Language, LOCALE_SENGLANGUAGE, lang);
 
-                    switch (SATR.LanguageExtension) {
+                        switch (SATR.LanguageExtension) {
                         case DVD_SP_EXT_NotSpecified:
                         default:
                             break;
@@ -2645,17 +2634,18 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
                         case DVD_SP_EXT_DirectorComments_Children:
                             lang += _T(" (Director Comments, Children)");
                             break;
+                        }
+
+                        if (bIsDisabled) {
+                            lang = _T("-");
+                        }
+
+                        Subtitles.Format(_T("%s"),
+                            lang.GetString());
                     }
 
-                    if (bIsDisabled) {
-                        lang = _T("-");
-                    }
-
-                    Subtitles.Format(_T("%s"),
-                                     lang.GetString());
+                    m_wndInfoBar.SetLine(StrRes(IDS_INFOBAR_SUBTITLES), Subtitles);
                 }
-
-                m_wndInfoBar.SetLine(StrRes(IDS_INFOBAR_SUBTITLES), Subtitles);
             } else if (GetPlaybackMode() == PM_DIGITAL_CAPTURE) {
                 if (m_pDVBState->bActive) {
                     CComQIPtr<IBDATuner> pTun = m_pGB;
@@ -2671,7 +2661,9 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
                     m_wndStatsBar.SetLine(StrRes(IDS_STATSBAR_SIGNAL), _T("-"));
                 }
             } else if (GetPlaybackMode() == PM_FILE) {
-                OpenSetupInfoBar(false);
+                if (m_wndInfoBar.IsVisible() || s.hMasterWnd) {
+                    OpenSetupInfoBar(false);
+                }
                 if (s.iTitleBarTextStyle == 1 && s.fTitleBarTextTitle) {
                     OpenSetupWindowTitle();
                 }
