@@ -2772,9 +2772,21 @@ LRESULT CMainFrame::OnDoLogOff(WPARAM wParam, LPARAM lParam)
 
 LRESULT CMainFrame::OnDoOpenCurPlaylist(WPARAM wParam, LPARAM lParam)
 {
+    TRACE(L"OnDoOpenCurPlaylist\n");
+
     MSG msg;
     while (PeekMessage(&msg, nullptr, WM_MPC_OPENCURPLAYLIST, WM_MPC_OPENCURPLAYLIST, PM_REMOVE)) {
         TRACE(L"Dropping pending OpenCurPlaylist message\n");
+    }
+
+    if (!CloseMediaBeforeOpen()) {
+        ASSERT(false);
+#if !defined(_DEBUG) && USE_DRDUMP_CRASH_REPORTER && (MPC_VERSION_REV > 10)
+        if (CrashReporter::IsEnabled()) {
+            throw 1;
+        }
+#endif
+        return S_OK;
     }
 
     bool reopen = (wParam == 1);
