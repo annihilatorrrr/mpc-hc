@@ -15896,6 +15896,7 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
 
     if (USE_LOGGER(s)) {
         PLAYER_LOG(_T("CMainFrame::OpenMediaPrivate (thread %lu)"), GetCurrentThreadId());
+        FLUSH_LOGGER();
     }
 
     m_fValidDVDOpen = false;
@@ -16400,7 +16401,7 @@ void CMainFrame::CloseMediaPrivate()
     ULONGLONG tc3 = GetTickCount64();
 
     if (USE_LOGGER(s)) {
-        PLAYER_LOG(_T("CMainFrame::CloseMediaPrivate - complete - %llums %llumss"), tc2-tc1, tc3-tc2);
+        PLAYER_LOG(_T("CMainFrame::CloseMediaPrivate - complete - %llums %llums"), tc2-tc1, tc3-tc2);
     } else if (tc3-tc1 >= 2000) {
         TRACE(_T("CMainFrame::CloseMediaPrivate - complete - %llums %llums\n"), tc2 - tc1, tc3 - tc2);
     }
@@ -19483,6 +19484,7 @@ void CMainFrame::OpenMedia(CAutoPtr<OpenMediaData> pOMD)
     } else {
         if (USE_LOGGER(s)) {
             PLAYER_LOG(_T("CMainFrame::OpenMedia (thread %lu)"), GetCurrentThreadId());
+            FLUSH_LOGGER();
         }
         TRACE(_T("CMainFrame::OpenMedia (thread %lu)\n"), GetCurrentThreadId());
     }
