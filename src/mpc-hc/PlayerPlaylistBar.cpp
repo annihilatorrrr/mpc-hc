@@ -1629,8 +1629,11 @@ bool CPlayerPlaylistBar::DeleteFileInPlaylist(POSITION pos, bool recycle)
     }
 
     if (isplaying) {
-        // close file to release the file handle
-        m_pMainFrame->CloseMedia(nextpos != nullptr, candeletefile);
+        if (m_pMainFrame->IsStateLoaded()) {
+            // close file to release the file handle
+            m_pMainFrame->CloseMedia(nextpos != nullptr, candeletefile);
+        }
+        // if state is loading/closing/aborting, then file may remain in use, but try delete anyway
     }
 
     if (candeletefile) {
@@ -1642,7 +1645,7 @@ bool CPlayerPlaylistBar::DeleteFileInPlaylist(POSITION pos, bool recycle)
         if (folderPlayNext) {
             m_pMainFrame->DoAfterPlaybackEvent();
         } else if (nextpos) {
-            m_pMainFrame->OpenCurPlaylistItem();
+            m_pMainFrame->PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
         }
     }
 
@@ -1860,8 +1863,8 @@ void CPlayerPlaylistBar::OnLvnKeyDown(NMHDR* pNMHDR, LRESULT* pResult)
             }
             ResizeListColumn();
         } else {
-           if (Empty()) {
-                m_pMainFrame->SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+           if (Empty() && !m_pMainFrame->IsStateClosed()) {
+                m_pMainFrame->PostMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
             }
         }
 
@@ -1869,8 +1872,8 @@ void CPlayerPlaylistBar::OnLvnKeyDown(NMHDR* pNMHDR, LRESULT* pResult)
     } else if (pLVKeyDown->wVKey == VK_SPACE) {
         m_pl.SetPos(FindPos(selected));
         m_list.Invalidate();
-        m_pMainFrame->OpenCurPlaylistItem();
         m_pMainFrame->SetFocus();
+        m_pMainFrame->PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
 
         *pResult = TRUE;
     }
@@ -1890,7 +1893,7 @@ void CPlayerPlaylistBar::OnNMDblclkList(NMHDR* pNMHDR, LRESULT* pResult)
             m_pl.SetPos(pos);
         }
         m_list.Invalidate();
-        m_pMainFrame->OpenCurPlaylistItem();
+        m_pMainFrame->PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
     }
 
     m_pMainFrame->SetFocus();
@@ -2417,7 +2420,7 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
         case M_OPEN:
             m_pl.SetPos(pos);
             m_list.Invalidate();
-            m_pMainFrame->OpenCurPlaylistItem();
+            m_pMainFrame->PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
             break;
         case M_ADD:
             m_pMainFrame->AddCurDevToPlaylist();
@@ -2426,14 +2429,14 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
         case M_REMOVE:
             if (m_pl.GetCount() > 1) {
                 if (m_pl.RemoveAt(pos)) {
-                    m_pMainFrame->SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+                    m_pMainFrame->PostMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
                 }
                 RebuildPosMap();
                 m_list.SetItemCountEx((int)m_pl.GetCount(), LVSICF_NOINVALIDATEALL);
                 m_list.Invalidate();
             } else {
                 if (Empty()) {
-                    m_pMainFrame->SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+                    m_pMainFrame->PostMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
                 }
             }
             SavePlaylist(true);
@@ -2443,7 +2446,7 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
             break;
         case M_CLEAR:
             if (Empty()) {
-                m_pMainFrame->SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+                m_pMainFrame->PostMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
             }
             SavePlaylist();
             break;
@@ -2667,12 +2670,12 @@ void CPlayerPlaylistBar::OnXButtonDown(UINT nFlags, UINT nButton, CPoint point)
         switch (nButton) {
             case XBUTTON1:
                 if (SetPrev()) {
-                    m_pMainFrame->OpenCurPlaylistItem();
+                    m_pMainFrame->PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
                 }
                 break;
             case XBUTTON2:
                 if (SetNext()) {
-                    m_pMainFrame->OpenCurPlaylistItem();
+                    m_pMainFrame->PostMessage(WM_MPC_OPENCURPLAYLIST, 0, 0);
                 }
                 break;
         }
