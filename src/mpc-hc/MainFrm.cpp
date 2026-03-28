@@ -1321,8 +1321,8 @@ void CMainFrame::OnClose()
         AfxGetMyApp()->SetClosingState();
 
         MSG msg;
-        while (PeekMessage(&msg, nullptr, WM_GRAPHNOTIFY, WM_GRAPHNOTIFY, PM_REMOVE)) {
-            TRACE(L"Purged queued graph event during player close\n");
+        while (PeekMessage(&msg, nullptr, WM_GRAPHNOTIFY, WM_MPC_OPENCURPLAYLIST, PM_REMOVE)) {
+            TRACE(L"Purged queued msg during player close: 0x%x\n", msg.message);
             ASSERT(false);
         }
         int pm = 0;
@@ -3530,6 +3530,10 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 
 LRESULT CMainFrame::OnResetDevice(WPARAM wParam, LPARAM lParam)
 {
+    if (!IsStateLoaded()) {
+        return S_OK;
+    }
+
     m_OSD.HideMessage(true);
 
     OAFilterState fs = GetMediaState();
@@ -20400,6 +20404,11 @@ inline bool CMainFrame::IsStateClosedOrLoaded()
     return m_eMediaLoadState == MLS::CLOSED || m_eMediaLoadState == MLS::LOADED;
 }
 
+inline bool CMainFrame::IsStateClosingAborting()
+{
+    return m_eMediaLoadState == MLS::CLOSING || m_eMediaLoadState == MLS::ABORTING;
+}
+
 void CMainFrame::SetPlayState(MPC_PLAYSTATE iState)
 {
     m_Lcd.SetPlayState((CMPC_Lcd::PlayState)iState);
@@ -21809,7 +21818,13 @@ LRESULT CMainFrame::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
         return 0;
     }
 
-    if (GetLoadState() == MLS::CLOSING && message != WM_ENTERIDLE && message != WM_DRAWITEM) {
+    if (message == WM_MPC_OPENCURPLAYLIST && IsStateClosingAborting()) {
+        // this can happen when a modal dialog is shown during media close, as that runs the main message loop
+        TRACE(_T("Dropped WindowProc: message 0x%x value %d\n"), message, LOWORD(wParam));
+        return 0;
+    }
+
+    if (message != WM_ENTERIDLE && message != WM_DRAWITEM && IsStateClosingAborting()) {
         TRACE(_T("WindowProc during media close: message 0x%x value %d\n"), message, LOWORD(wParam));
     }
 

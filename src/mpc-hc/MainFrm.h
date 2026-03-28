@@ -1257,6 +1257,7 @@ public:
     bool        IsStateLoaded();
     bool        IsStateClosed();
     bool        IsStateClosedOrLoaded();
+    bool        IsStateClosingAborting();
     void        SetPlayState(MPC_PLAYSTATE iState);
     bool        CreateFullScreenWindow(bool isD3D=true);
     void        SetupEVRColorControl();
