@@ -2045,7 +2045,7 @@ void CFGManagerCustom::InsertLAVVideo(bool IsPreview)
     CFGFilter* pFGF;
 
     CAutoPtr<CFGFilterLAV> pFGLAVVideo  (IsPreview ? CFGFilterLAV::CreateFilterPreview(CFGFilterLAV::VIDEO_DECODER, MERIT64_ABOVE_DSHOW)  : CFGFilterLAV::CreateFilter(CFGFilterLAV::VIDEO_DECODER, MERIT64_ABOVE_DSHOW));
-    CAutoPtr<CFGFilterLAV> pFGLAVVideoLM(IsPreview ? CFGFilterLAV::CreateFilterPreview(CFGFilterLAV::VIDEO_DECODER, MERIT64_DO_USE, true) : CFGFilterLAV::CreateFilter(CFGFilterLAV::VIDEO_DECODER, MERIT64_DO_USE, true));
+    CAutoPtr<CFGFilterLAV> pFGLAVVideoLM(IsPreview ? CFGFilterLAV::CreateFilterPreview(CFGFilterLAV::VIDEO_DECODER, MERIT64_LOWEST+5, true) : CFGFilterLAV::CreateFilter(CFGFilterLAV::VIDEO_DECODER, MERIT64_LOWEST+5, true));
     
 #if INTERNAL_DECODER_MPEG1
     pFGF = IsPreview || tra[TRA_MPEG1] ? pFGLAVVideo : pFGLAVVideoLM;
@@ -2330,7 +2330,7 @@ void CFGManagerCustom::InsertLAVAudio()
     CFGFilter* pFGF;
 
     CAutoPtr<CFGFilterLAV> pFGLAVAudio(CFGFilterLAV::CreateFilter(CFGFilterLAV::AUDIO_DECODER, MERIT64_ABOVE_DSHOW));
-    CAutoPtr<CFGFilterLAV> pFGLAVAudioLM(CFGFilterLAV::CreateFilter(CFGFilterLAV::AUDIO_DECODER, MERIT64_DO_USE, true));
+    CAutoPtr<CFGFilterLAV> pFGLAVAudioLM(CFGFilterLAV::CreateFilter(CFGFilterLAV::AUDIO_DECODER, MERIT64_LOWEST+5, true));
 
 #if INTERNAL_DECODER_MPEGAUDIO
     pFGF = tra[TRA_MPA] ? pFGLAVAudio : pFGLAVAudioLM;
@@ -2878,6 +2878,9 @@ CFGManagerPlayer::CFGManagerPlayer(LPCWSTR pClassName, LPCWSTR pInputFileURL, HW
     }
 
     if (!m_bIsPreview) {
+        bool fallback_ds = false;
+        bool fallback_mpcar = false;
+        bool fallback_null = false;
         CString SelAudioRenderer = s.SelectedAudioRenderer();
         if (SelAudioRenderer == AUDRNDT_NULL_COMP) {
             pFGF = DEBUG_NEW CFGFilterInternal<CNullAudioRenderer>(AUDRNDT_NULL_COMP, MERIT64_ABOVE_DSHOW + 2);
@@ -2912,21 +2915,40 @@ CFGManagerPlayer::CFGManagerPlayer(LPCWSTR pClassName, LPCWSTR pInputFileURL, HW
             pFGF = DEBUG_NEW SaneAudioRendererFilter(AUDRNDT_SANEAR, renderer_merit + 0x50);
             pFGF->AddType(MEDIATYPE_Audio, MEDIASUBTYPE_NULL);
             m_transform.AddTail(pFGF);
+            fallback_ds = true;
+            fallback_null = true;
         } else if (SelAudioRenderer == AUDRNDT_MPC) {
             pFGF = DEBUG_NEW CFGFilterInternal<CMpcAudioRenderer>(AUDRNDT_MPC, renderer_merit);
             pFGF->AddType(MEDIATYPE_Audio, MEDIASUBTYPE_PCM);
             pFGF->AddType(MEDIATYPE_Audio, MEDIASUBTYPE_IEEE_FLOAT);
             m_transform.AddTail(pFGF);
+            fallback_ds = true;
+            fallback_null = true;
         } else if (!SelAudioRenderer.IsEmpty()) {
             pFGF = DEBUG_NEW CFGFilterRegistry(SelAudioRenderer, renderer_merit);
             pFGF->AddType(MEDIATYPE_Audio, MEDIASUBTYPE_NULL);
             m_transform.AddTail(pFGF);
+            fallback_mpcar = true;
+            fallback_null = true;
+        } else {
+            fallback_mpcar = true;
+            fallback_null = true;
         }
 
-        // Resampler DMO, add with lowest merit to handle unsupported samplerates with DirectSound/WaveOut renderers
-        CStringW filterid = L"@device:dmo:{F447B69E-1884-4A7E-8055-346F74D6EDB3}{F3602B3F-0592-48DF-A4CD-674721E7EBEB}";
-        if (!HasFilterOverride(filterid)) {
-            pFGF = DEBUG_NEW CFGFilterRegistry(filterid, MERIT64_LOWEST);
+        // fallbacks
+        if (fallback_mpcar) {
+            pFGF = DEBUG_NEW CFGFilterInternal<CMpcAudioRenderer>(AUDRNDT_MPC, MERIT64_UNLIKELY + 1);
+            pFGF->AddType(MEDIATYPE_Audio, MEDIASUBTYPE_PCM);
+            pFGF->AddType(MEDIATYPE_Audio, MEDIASUBTYPE_IEEE_FLOAT);
+            m_transform.AddTail(pFGF);
+        }
+        if (fallback_ds) {
+            pFGF = DEBUG_NEW CFGFilterRegistry(L"@device:cm:{E0F158E1-CB04-11D0-BD4E-00A0C911CE86}\\Default DirectSound Device", MERIT64_LOWEST + 1);
+            m_transform.AddTail(pFGF);
+        }
+        if (fallback_null) {
+            pFGF = DEBUG_NEW CFGFilterInternal<CNullUAudioRenderer>(AUDRNDT_NULL_UNCOMP, MERIT64_LOWEST);
+            pFGF->AddType(MEDIATYPE_Audio, MEDIASUBTYPE_NULL);
             m_transform.AddTail(pFGF);
         }
     } else {
