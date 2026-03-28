@@ -109,7 +109,7 @@ configure() {
   fi
   
   if [ "${COMPILER}" == "MSVC" ]; then
-    OPTIONS="${OPTIONS} --enable-schannel"
+    OPTIONS="${OPTIONS} --enable-schannel --disable-decoder=sanm"
   fi
   
   EXTRA_LDFLAGS=""
