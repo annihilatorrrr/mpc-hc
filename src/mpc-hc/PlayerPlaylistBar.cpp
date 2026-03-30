@@ -1224,6 +1224,22 @@ void CPlayerPlaylistBar::SetupList()
 {
     RebuildPosMap();
     m_list.SetItemCountEx((int)m_pl.GetCount(), 0);
+    m_list.Invalidate();
+}
+
+void CPlayerPlaylistBar::SyncSelectionToPos(POSITION pos)
+{
+    if (!pos) {
+        return;
+    }
+    int idx = FindItem(pos);
+    if (idx < 0) {
+        return;
+    }
+    m_list.SetItemState(-1, 0, LVIS_SELECTED | LVIS_FOCUSED);
+    m_list.SetItemState(idx, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+    m_list.SetSelectionMark(idx);
+    m_list.EnsureVisible(idx, TRUE);
 }
 
 void CPlayerPlaylistBar::UpdateList()
@@ -1482,8 +1498,10 @@ void CPlayerPlaylistBar::SetCurTime(REFERENCE_TIME rt)
 
 void CPlayerPlaylistBar::Randomize()
 {
+    POSITION selPos = FindPos(m_list.GetSelectionMark());
     m_pl.Randomize();
     SetupList();
+    SyncSelectionToPos(selPos ? selPos : m_pl.GetPos());
     SavePlaylist();
 }
 
@@ -1857,7 +1875,7 @@ void CPlayerPlaylistBar::OnLvnKeyDown(NMHDR* pNMHDR, LRESULT* pResult)
             m_list.Invalidate();
 
             if (m_list.GetItemCount() > 0) {
-                int sel = (selected < m_list.GetItemCount()) ? selected : 0;
+                int sel = (selected < m_list.GetItemCount()) ? selected : m_list.GetItemCount() - 1;
                 m_list.SetItemState(sel, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
                 m_list.SetSelectionMark(sel);
             }
@@ -2399,10 +2417,18 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
     }
     m.AppendMenu(MF_STRING | (!m_pl.GetCount() ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_SAVEAS, ResStr(IDS_PLAYLIST_SAVEAS));
     m.AppendMenu(MF_SEPARATOR);
-    m.AppendMenu(MF_STRING | (!m_pl.GetCount() ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_SORTBYNAME, ResStr(IDS_PLAYLIST_SORTBYLABEL));
-    m.AppendMenu(MF_STRING | (!m_pl.GetCount() ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_SORTBYPATH, ResStr(IDS_PLAYLIST_SORTBYPATH));
-    m.AppendMenu(MF_STRING | (!m_pl.GetCount() ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_RANDOMIZE, ResStr(IDS_PLAYLIST_RANDOMIZE));
-    m.AppendMenu(MF_STRING | (!m_pl.GetCount() ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_SORTBYID, ResStr(IDS_PLAYLIST_RESTORE));
+    {
+        CMPCThemeMenu sortMenu;
+        sortMenu.CreatePopupMenu();
+        UINT sortGray = !m_pl.GetCount() ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED;
+        sortMenu.AppendMenu(MF_STRING | sortGray, M_SORTBYNAME, ResStr(IDS_PLAYLIST_SORTBYLABEL));
+        sortMenu.AppendMenu(MF_STRING | sortGray, M_SORTBYPATH, ResStr(IDS_PLAYLIST_SORTBYPATH));
+        sortMenu.AppendMenu(MF_STRING | sortGray, M_RANDOMIZE, ResStr(IDS_PLAYLIST_RANDOMIZE));
+        sortMenu.AppendMenu(MF_SEPARATOR);
+        sortMenu.AppendMenu(MF_STRING | sortGray, M_SORTBYID, ResStr(IDS_PLAYLIST_RESTORE));
+        m.AppendMenu(MF_POPUP | sortGray, (UINT_PTR)sortMenu.GetSafeHmenu(), ResStr(IDS_PLAYLIST_SORT));
+        sortMenu.Detach();
+    }
     m.AppendMenu(MF_SEPARATOR);
     m.AppendMenu(MF_STRING | MF_ENABLED | (s.bShufflePlaylistItems ? MF_CHECKED : MF_UNCHECKED), M_SHUFFLE, ResStr(IDS_PLAYLIST_SHUFFLE));
     m.AppendMenu(MF_SEPARATOR);
@@ -2416,6 +2442,7 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
     //adipose: note this will bypass CPlayerBar::OnEnterMenuLoop, so we set m_bHasActivePopup directly here
     int nID = (int)m.TrackPopupMenu(TPM_LEFTBUTTON | TPM_RETURNCMD, point.x, point.y, m_pMainFrame);
     m_bHasActivePopup = false;
+    m_list.SetFocus();
     switch (nID) {
         case M_OPEN:
             m_pl.SetPos(pos);
@@ -2450,21 +2477,30 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
             }
             SavePlaylist();
             break;
-        case M_SORTBYID:
+        case M_SORTBYID: {
+            POSITION selPos = FindPos(m_list.GetSelectionMark());
             m_pl.SortById();
             SetupList();
+            SyncSelectionToPos(selPos ? selPos : m_pl.GetPos());
             SavePlaylist();
             break;
-        case M_SORTBYNAME:
+        }
+        case M_SORTBYNAME: {
+            POSITION selPos = FindPos(m_list.GetSelectionMark());
             m_pl.SortByName();
             SetupList();
+            SyncSelectionToPos(selPos ? selPos : m_pl.GetPos());
             SavePlaylist();
             break;
-        case M_SORTBYPATH:
+        }
+        case M_SORTBYPATH: {
+            POSITION selPos = FindPos(m_list.GetSelectionMark());
             m_pl.SortByPath();
             SetupList();
+            SyncSelectionToPos(selPos ? selPos : m_pl.GetPos());
             SavePlaylist();
             break;
+        }
         case M_RANDOMIZE:
             Randomize();
             break;
