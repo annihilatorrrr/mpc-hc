@@ -2537,6 +2537,11 @@ void CFGManagerCustom::InsertBlockedFilters()
     // Accusoft PICVideo M-JPEG Codec
     m_transform.AddTail(DEBUG_NEW CFGFilterRegistry(GUIDFromCString(_T("{4C4CD9E1-F876-11D2-962F-00500471FDDC}")), MERIT64_DO_NOT_USE));
 
+    #ifndef _WIN64
+	// PICVideo Lossless JPEG Decompressor (pvljpg20.dll)
+	m_transform.AddTail(DEBUG_NEW CFGFilterRegistry(GUIDFromCString(_T("{BA310CC1-470D-11D3-962F-00500471FDDC}")), MERIT64_DO_NOT_USE));
+    #endif
+
     // SolveigMM MP4 Demultiplexer (smm_mp4demuxer.ax)
     m_transform.AddTail(DEBUG_NEW CFGFilterRegistry(GUIDFromCString(_T("{5F19B8FE-BA79-4183-B3CF-FEE4E8F801E4}")), MERIT64_DO_NOT_USE));
 

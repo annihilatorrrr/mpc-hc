@@ -1527,16 +1527,15 @@ typedef struct {
 // limit blocking to ACM/VFW codecs, as blocking other stuff might result in repeated loading attempts and performance issues
 static blocked_module_t moduleblocklist[] = {
 #if WIN64
-    // Logitech codec
-    {_T("\\lvcod64.dll"), 12},
-    // ProxyCodec64
-    {_T("\\pxc0.dll"), 9},
+    {_T("\\lvcod64.dll"), 12},   // Logitech Video (I420) codec
+    {_T("\\pxc0.dll"), 9},       // ProxyCodec64
+    {_T("\\pxc1.dll"), 9},
+    {_T("\\tsccvid64.dll"), 14}, // Techsmith video codec
+    {_T("\\bdmpega64.acm"), 14}, // Bandicam audio codec
 #endif
-    {_T("\\mlc.dll"), 8},
+    {_T("\\mlc.dll"), 8},        // MLC lossless codec
     {_T("\\ff_vfw.dll"), 11},
-    {_T("\\tsccvid64.dll"), 14},
     {_T("\\lameacm.acm"), 12},
-    {_T("\\bdmpega64.acm"), 14},
     {_T("\\ff_acm.acm"), 11},
 
     // other candidates for blocking that often crash:
