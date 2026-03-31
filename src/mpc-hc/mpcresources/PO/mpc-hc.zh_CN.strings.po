@@ -485,6 +485,10 @@ msgctxt "IDS_PLAYLIST_RESTORE"
 msgid "R&estore"
 msgstr "还原(&E)"
 
+msgctxt "IDS_PLAYLIST_SORT"
+msgid "&Sort"
+msgstr ""
+
 msgctxt "IDS_SUBRESYNC_SEPARATOR"
 msgid "&Separator"
 msgstr "分割(&S)"

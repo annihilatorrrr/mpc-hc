@@ -481,6 +481,10 @@ msgctxt "IDS_PLAYLIST_RESTORE"
 msgid "R&estore"
 msgstr "되돌리기(&E)"
 
+msgctxt "IDS_PLAYLIST_SORT"
+msgid "&Sort"
+msgstr ""
+
 msgctxt "IDS_SUBRESYNC_SEPARATOR"
 msgid "&Separator"
 msgstr "구분 기호(&S)"

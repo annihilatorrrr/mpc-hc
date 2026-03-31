@@ -488,6 +488,10 @@ msgctxt "IDS_PLAYLIST_RESTORE"
 msgid "R&estore"
 msgstr "পূর্বাবস্থায় ফিরিয়ে আনি(&E)"
 
+msgctxt "IDS_PLAYLIST_SORT"
+msgid "&Sort"
+msgstr ""
+
 msgctxt "IDS_SUBRESYNC_SEPARATOR"
 msgid "&Separator"
 msgstr "বিচ্ছেদক(&S)"

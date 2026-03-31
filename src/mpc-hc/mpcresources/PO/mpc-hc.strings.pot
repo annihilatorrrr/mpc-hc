@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MPC-HC\n"
-"POT-Creation-Date: 2026-03-17 15:40:00+0000\n"
+"POT-Creation-Date: 2026-03-31 17:00:26+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -469,6 +469,10 @@ msgstr ""
 
 msgctxt "IDS_PLAYLIST_RESTORE"
 msgid "R&estore"
+msgstr ""
+
+msgctxt "IDS_PLAYLIST_SORT"
+msgid "&Sort"
 msgstr ""
 
 msgctxt "IDS_SUBRESYNC_SEPARATOR"
