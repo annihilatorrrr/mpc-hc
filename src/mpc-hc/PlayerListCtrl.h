@@ -235,6 +235,7 @@ public:
     afx_msg BOOL OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult);
     afx_msg void OnLvnInsertitem(NMHDR* pNMHDR, LRESULT* pResult);
     afx_msg void OnLvnDeleteitem(NMHDR* pNMHDR, LRESULT* pResult);
+    afx_msg void OnLvnFinditem(NMHDR* pNMHDR, LRESULT* pResult);
     afx_msg void OnEnChangeEdit1();
     afx_msg void OnEnChangeWinHotkey1();
     afx_msg void OnCbnDropdownCombo1();

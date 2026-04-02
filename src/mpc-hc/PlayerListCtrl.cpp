@@ -963,6 +963,7 @@ BEGIN_MESSAGE_MAP(CPlayerListCtrl, CMPCThemePlayerListCtrl)
     ON_NOTIFY_REFLECT_EX(LVN_BEGINDRAG, OnLvnBegindrag)
     ON_NOTIFY_REFLECT(LVN_INSERTITEM, OnLvnInsertitem)
     ON_NOTIFY_REFLECT(LVN_DELETEITEM, OnLvnDeleteitem)
+    ON_NOTIFY_REFLECT(LVN_ODFINDITEM, OnLvnFinditem)
     ON_EN_CHANGE(IDC_EDIT1, OnEnChangeEdit1)
     ON_EN_CHANGE(IDC_WINHOTKEY1, OnEnChangeWinHotkey1)
     ON_CBN_DROPDOWN(IDC_COMBO1, OnCbnDropdownCombo1)
@@ -1142,6 +1143,19 @@ void CPlayerListCtrl::OnLvnDeleteitem(NMHDR* pNMHDR, LRESULT* pResult)
     UNREFERENCED_PARAMETER(pNMLV);
     m_nItemClicked = -1;
     *pResult = 0;
+}
+
+void CPlayerListCtrl::OnLvnFinditem(NMHDR* pNMHDR, LRESULT* pResult)
+{
+    LPNMLVFINDITEM pFindItem = reinterpret_cast<LPNMLVFINDITEM>(pNMHDR);
+
+    if (pFindItem) {
+        int startidx = pFindItem->iStart;
+        CString findstr = pFindItem->lvfi.psz;
+        // ToDo: search playlist
+    }
+
+    *pResult = -1;
 }
 
 void CPlayerListCtrl::OnEnChangeEdit1()
