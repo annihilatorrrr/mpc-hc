@@ -2400,36 +2400,48 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 
     CAppSettings& s = AfxGetAppSettings();
 
-    m.AppendMenu(MF_STRING | (!bOnItem ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_OPEN, ResStr(IDS_PLAYLIST_OPEN));
+    UINT styleOnItem       = MF_STRING | (!bOnItem ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED);
+    UINT styleOnItemLocal  = MF_STRING | ((!bOnItem || !bIsLocalFile) ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED);
+    UINT styleListNotEmpty = MF_STRING | (!m_pl.GetCount() ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED);
+
+    m.AppendMenu(styleOnItem, M_OPEN, ResStr(IDS_PLAYLIST_OPEN));
     if (m_pMainFrame->GetPlaybackMode() == PM_ANALOG_CAPTURE) {
         m.AppendMenu(MF_STRING | MF_ENABLED, M_ADD, ResStr(IDS_PLAYLIST_ADD));
     }
-    m.AppendMenu(MF_STRING | (!bOnItem ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_REMOVE, ResStr(IDS_PLAYLIST_REMOVE));
+    m.AppendMenu(styleOnItem, M_REMOVE, ResStr(IDS_PLAYLIST_REMOVE));
     m.AppendMenu(MF_SEPARATOR);
-    m.AppendMenu(MF_STRING | (!m_pl.GetCount() ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_CLEAR, ResStr(IDS_PLAYLIST_CLEAR));
+    m.AppendMenu(styleListNotEmpty, M_CLEAR, ResStr(IDS_PLAYLIST_CLEAR));
     m.AppendMenu(MF_SEPARATOR);
-    m.AppendMenu(MF_STRING | (!bOnItem ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_CLIPBOARD, ResStr(IDS_PLAYLIST_COPYTOCLIPBOARD));
-    m.AppendMenu(MF_STRING | ((!bOnItem || !bIsLocalFile) ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_SHOWFOLDER, ResStr(IDS_PLAYLIST_SHOWFOLDER));
-    m.AppendMenu(MF_STRING | ((!bOnItem || !bIsLocalFile) ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_RECYCLE, ResStr(IDS_FILE_RECYCLE));
-    m.AppendMenu(MF_STRING | ((!bOnItem || !bIsLocalFile) ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_ADDFOLDER, ResStr(IDS_PLAYLIST_ADDFOLDER));
+    m.AppendMenu(styleOnItem, M_CLIPBOARD, ResStr(IDS_PLAYLIST_COPYTOCLIPBOARD));
+    m.AppendMenu(styleOnItemLocal, M_SHOWFOLDER, ResStr(IDS_PLAYLIST_SHOWFOLDER));
+    m.AppendMenu(styleOnItemLocal, M_RECYCLE, ResStr(IDS_FILE_RECYCLE));
+    m.AppendMenu(styleOnItemLocal, M_ADDFOLDER, ResStr(IDS_PLAYLIST_ADDFOLDER));
     m.AppendMenu(MF_SEPARATOR);
     if (!m_playListPath.IsEmpty()) {
-        m.AppendMenu(MF_STRING | (!m_pl.GetCount() ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_SAVE, ResStr(IDS_PLAYLIST_SAVE));
+        m.AppendMenu(styleListNotEmpty, M_SAVE, ResStr(IDS_PLAYLIST_SAVE));
     }
-    m.AppendMenu(MF_STRING | (!m_pl.GetCount() ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED), M_SAVEAS, ResStr(IDS_PLAYLIST_SAVEAS));
+    m.AppendMenu(styleListNotEmpty, M_SAVEAS, ResStr(IDS_PLAYLIST_SAVEAS));
     m.AppendMenu(MF_SEPARATOR);
+#if 0
     {
+        // Fixme: rendering broken in light theme
         CMPCThemeMenu sortMenu;
         sortMenu.CreatePopupMenu();
-        UINT sortGray = !m_pl.GetCount() ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED;
-        sortMenu.AppendMenu(MF_STRING | sortGray, M_SORTBYNAME, ResStr(IDS_PLAYLIST_SORTBYLABEL));
-        sortMenu.AppendMenu(MF_STRING | sortGray, M_SORTBYPATH, ResStr(IDS_PLAYLIST_SORTBYPATH));
-        sortMenu.AppendMenu(MF_STRING | sortGray, M_RANDOMIZE, ResStr(IDS_PLAYLIST_RANDOMIZE));
+        UINT styleListNotEmptyPopup = MF_POPUP | (!m_pl.GetCount() ? (MF_DISABLED | MF_GRAYED) : MF_ENABLED);
+        sortMenu.AppendMenu(styleListNotEmpty, M_SORTBYNAME, ResStr(IDS_PLAYLIST_SORTBYLABEL));
+        sortMenu.AppendMenu(styleListNotEmpty, M_SORTBYPATH, ResStr(IDS_PLAYLIST_SORTBYPATH));
+        sortMenu.AppendMenu(styleListNotEmpty, M_RANDOMIZE, ResStr(IDS_PLAYLIST_RANDOMIZE));
         sortMenu.AppendMenu(MF_SEPARATOR);
-        sortMenu.AppendMenu(MF_STRING | sortGray, M_SORTBYID, ResStr(IDS_PLAYLIST_RESTORE));
-        m.AppendMenu(MF_POPUP | sortGray, (UINT_PTR)sortMenu.GetSafeHmenu(), ResStr(IDS_PLAYLIST_SORT));
+        sortMenu.AppendMenu(styleListNotEmpty, M_SORTBYID, ResStr(IDS_PLAYLIST_RESTORE));
+        m.AppendMenu(styleListNotEmptyPopup, (UINT_PTR)sortMenu.GetSafeHmenu(), ResStr(IDS_PLAYLIST_SORT));
         sortMenu.Detach();
     }
+#else
+    m.AppendMenu(styleListNotEmpty, M_SORTBYNAME, ResStr(IDS_PLAYLIST_SORTBYLABEL));
+    m.AppendMenu(styleListNotEmpty, M_SORTBYPATH, ResStr(IDS_PLAYLIST_SORTBYPATH));
+    m.AppendMenu(styleListNotEmpty, M_RANDOMIZE, ResStr(IDS_PLAYLIST_RANDOMIZE));
+    m.AppendMenu(styleListNotEmpty, M_SORTBYID, ResStr(IDS_PLAYLIST_RESTORE));
+#endif
     m.AppendMenu(MF_SEPARATOR);
     m.AppendMenu(MF_STRING | MF_ENABLED | (s.bShufflePlaylistItems ? MF_CHECKED : MF_UNCHECKED), M_SHUFFLE, ResStr(IDS_PLAYLIST_SHUFFLE));
     m.AppendMenu(MF_SEPARATOR);
