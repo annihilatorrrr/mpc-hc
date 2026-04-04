@@ -22132,13 +22132,18 @@ void CMainFrame::UpdateControlState(UpdateControlTarget target)
                     CPlaylistItem pli;
                     if (m_wndPlaylistBar.GetCur(pli) && !pli.m_cover.IsEmpty() && CPath(pli.m_cover).FileExists()) {
                         LoadArtToViews(pli.m_cover);
+                    } else if (PathUtils::IsURL(filename)) {
+                        ClearArtFromViews();
                     } else if (!filedir.IsEmpty() && (m_currentCoverPath != filedir || m_currentCoverAuthor != author || currentCoverIsFileArt)) {
                         CString img = CoverArt::FindExternal(filename_no_ext, filedir, author, currentCoverIsFileArt);
                         LoadArtToViews(img);
-                        m_currentCoverPath = filedir;
-                        m_currentCoverAuthor = author;
-                    } else if (PathUtils::IsURL(filename)) {
-                        ClearArtFromViews();
+                        if (img.IsEmpty()) {
+                            m_currentCoverPath.Empty();
+                            m_currentCoverAuthor.Empty();
+                        } else {
+                            m_currentCoverPath = filedir;
+                            m_currentCoverAuthor = author;
+                        }
                     }
                 }
             } else {
