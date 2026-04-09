@@ -2728,7 +2728,7 @@ void CPlayerPlaylistBar::OnLvnFinditem(NMHDR* pNMHDR, LRESULT* pResult)
             idx++;
             if (len > 2) { // search whole label
                 if (label.Find(findstr) >= 0) {
-                    if (idx > startidx) {
+                    if (idx >= startidx) {
                         *pResult = idx;
                         return;
                     } else if (firstfoundidx == -1) {
@@ -2737,7 +2737,7 @@ void CPlayerPlaylistBar::OnLvnFinditem(NMHDR* pNMHDR, LRESULT* pResult)
                 }
             } else { // compare left side
                 if (findstr == label.Left(len)) {
-                    if (idx > startidx) {
+                    if (idx >= startidx) {
                         *pResult = idx;
                         return;
                     } else if (firstfoundidx == -1) {
