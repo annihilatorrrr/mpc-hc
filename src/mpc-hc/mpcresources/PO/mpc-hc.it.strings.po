@@ -4427,8 +4427,8 @@ msgid "/standby\t\tPut the operating system in standby mode after playback"
 msgstr "/standby\t\tSospendi il sistema operativo dopo la riproduzione"
 
 msgctxt "IDS_CMD_HIBERNATE"
-msgid "/hibernate\tHibernate operating system after playback"
-msgstr "/hibernate\tIberna il computer al termine della riproduzione"
+msgid "/hibernate\t\tHibernate operating system after playback"
+msgstr "/hibernate\t\tIberna il computer al termine della riproduzione"
 
 msgctxt "IDS_CMD_LOGOFF"
 msgid "/logoff\t\tLog off after playback"

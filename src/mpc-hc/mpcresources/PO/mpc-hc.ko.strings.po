@@ -4323,8 +4323,8 @@ msgid "/standby\t\tPut the operating system in standby mode after playback"
 msgstr "/standby\t\t재생 후, 대기 모드로 전환"
 
 msgctxt "IDS_CMD_HIBERNATE"
-msgid "/hibernate\tHibernate operating system after playback"
-msgstr "/hibernate\t재생 후 운영 체제를 최대 절전 모드로 전환"
+msgid "/hibernate\t\tHibernate operating system after playback"
+msgstr "/hibernate\t\t재생 후 운영 체제를 최대 절전 모드로 전환"
 
 msgctxt "IDS_CMD_LOGOFF"
 msgid "/logoff\t\tLog off after playback"

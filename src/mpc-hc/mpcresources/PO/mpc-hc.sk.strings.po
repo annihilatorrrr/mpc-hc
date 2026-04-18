@@ -4417,8 +4417,8 @@ msgid "/standby\t\tPut the operating system in standby mode after playback"
 msgstr "/standby\t\tPrepnúť operačný systém do pohotovostného režimu po prehraní"
 
 msgctxt "IDS_CMD_HIBERNATE"
-msgid "/hibernate\tHibernate operating system after playback"
-msgstr "/hibernate\tRežim dlhodobého spánku OS po prehratí"
+msgid "/hibernate\t\tHibernate operating system after playback"
+msgstr "/hibernate\t\tRežim dlhodobého spánku OS po prehratí"
 
 msgctxt "IDS_CMD_LOGOFF"
 msgid "/logoff\t\tLog off after playback"
