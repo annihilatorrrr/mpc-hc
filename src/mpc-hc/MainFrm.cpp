@@ -11565,12 +11565,13 @@ void CMainFrame::PlayFavoriteFile(const CString& fav)
     m_wndPlaylistBar.SetCurLabel(ff.Name);
 
     if (IsStateLoaded() && GetPlaybackMode() == PM_FILE && m_lastOMD && args.GetHead() == m_lastOMD->title) {
+        m_wndSeekBar.Invalidate();
         DoSeekTo(rtStart);
     } else {
         if (!CloseMediaBeforeOpen()) {
             return;
         }
-        OpenCurPlaylistItem(rtStart);
+        OpenCurPlaylistItem(rtStart, abRepeat);
     }
 
 }
