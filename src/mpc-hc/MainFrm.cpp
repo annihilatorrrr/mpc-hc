@@ -4573,9 +4573,9 @@ void CMainFrame::OnFilePostClosemedia(bool bNextIsQueued/* = false*/)
         m_controls.ToggleControl(CMainFrameControls::Panel::NAVIGATION);
     }
 
-    if (!bNextIsQueued) {
+    //if (!bNextIsQueued) {
         OpenSetupWindowTitle(true);
-    }
+    //}
 
     SetAlwaysOnTop(s.iOnTop);
 
