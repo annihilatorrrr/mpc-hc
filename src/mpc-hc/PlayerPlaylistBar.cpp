@@ -1446,12 +1446,18 @@ CString CPlayerPlaylistBar::GetCurFileNameTitle()
 
 bool CPlayerPlaylistBar::SetNext()
 {
-    POSITION pos = m_pl.GetPos(), org = pos;
+    POSITION pos = m_pl.GetPos();
+    POSITION org = pos;
+    POSITION selPos = FindPos(m_list.GetSelectionMark());
+    
     while (m_pl.GetNextWrap(pos).m_fInvalid && pos != org) {
         ;
     }
     InvalidatePlayingItem(org, pos);
     m_pl.SetPos(pos);
+    if (org == selPos && pos != org) {
+        SyncSelectionToPos(pos);
+    }
     EnsureVisible(pos);
 
     return (pos != org);
@@ -1459,12 +1465,18 @@ bool CPlayerPlaylistBar::SetNext()
 
 bool CPlayerPlaylistBar::SetPrev()
 {
-    POSITION pos = m_pl.GetPos(), org = pos;
+    POSITION pos = m_pl.GetPos();
+    POSITION org = pos;
+    POSITION selPos = FindPos(m_list.GetSelectionMark());
+
     while (m_pl.GetPrevWrap(pos).m_fInvalid && pos != org) {
         ;
     }
     InvalidatePlayingItem(org, pos);
     m_pl.SetPos(pos);
+    if (org == selPos && pos != org) {
+        SyncSelectionToPos(pos);
+    }
     EnsureVisible(pos);
 
     return (pos != org);
