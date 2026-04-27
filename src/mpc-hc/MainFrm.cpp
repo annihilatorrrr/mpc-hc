@@ -9135,7 +9135,9 @@ void CMainFrame::OnPlayPlay()
         }
 
         if (m_fFrameSteppingActive) {
-            m_pFS->CancelStep();
+            if (m_pFS.p) {
+                m_pFS->CancelStep();
+            }
             m_fFrameSteppingActive = false;
             if (m_pBA) {
                 m_pBA->put_Volume(m_nVolumeBeforeFrameStepping);
