@@ -737,14 +737,14 @@ STDMETHODIMP CMpcAudioRenderer::Run(REFERENCE_TIME rtStart)
 		return NOERROR;
 	}
 
+	EndReleaseTimer();
+
 	m_filterState = State_Running;
 	m_rtStartTime = rtStart;
 
 	if (m_bEOS) {
 		NotifyEvent(EC_COMPLETE, S_OK, 0);
 	}
-
-	EndReleaseTimer();
 
 	if (m_hRendererNeedMoreData) {
 		SetEvent(m_hRendererNeedMoreData);
@@ -3084,7 +3084,11 @@ void CMpcAudioRenderer::WaitFinish()
 static VOID CALLBACK TimerCallbackFunc(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
 {
 	if (auto pRenderer = (CMpcAudioRenderer*)lpParameter) {
-		pRenderer->ReleaseDevice();
+        if (pRenderer->GetFilterState() != State_Running) {
+            pRenderer->ReleaseDevice();
+        } else {
+            ASSERT(false);
+        }
 	}
 }
 
@@ -3095,7 +3099,7 @@ void CMpcAudioRenderer::StartReleaseTimer()
 											nullptr,
 											TimerCallbackFunc,
 											this,
-											3000,
+											5000,
 											0,
 											WT_EXECUTEINTIMERTHREAD);
 	}

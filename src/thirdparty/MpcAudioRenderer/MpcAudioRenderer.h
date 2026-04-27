@@ -105,6 +105,8 @@ public:
 	void EndReleaseTimer();
 	void ReleaseDevice();
 
+    FILTER_STATE GetFilterState() { return m_filterState; }
+
 	DECLARE_IUNKNOWN
 
 	STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void **ppv) override;
