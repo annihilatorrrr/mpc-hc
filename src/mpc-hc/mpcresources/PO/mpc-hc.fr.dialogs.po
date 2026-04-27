@@ -655,11 +655,6 @@ msgstr ""
 "Masquer automatiquement le pointeur de la souris pendant la lecture en mode "
 "fenêtré"
 
-msgctxt "IDD_PPAGETWEAKS_IDC_CHECK4"
-msgid "Display \"Now Playing\" information in Skype's mood message"
-msgstr ""
-"Afficher le titre joué actuellement dans les messages d'humeur de Skype"
-
 msgctxt "IDD_PPAGETWEAKS_IDC_CHECK_LCD"
 msgid "Enable Logitech LCD support (experimental)"
 msgstr ""

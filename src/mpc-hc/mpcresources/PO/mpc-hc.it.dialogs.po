@@ -655,10 +655,6 @@ msgstr ""
 "Nascondi automaticamente il puntatore del mouse durante la riproduzione in "
 "modalità finestra"
 
-msgctxt "IDD_PPAGETWEAKS_IDC_CHECK4"
-msgid "Display \"Now Playing\" information in Skype's mood message"
-msgstr "Mostra le informazioni \"Ora in Riproduzione\" nei messaggi di Skype"
-
 msgctxt "IDD_PPAGETWEAKS_IDC_CHECK_LCD"
 msgid "Enable Logitech LCD support (experimental)"
 msgstr "Abilita supporto Logitech LCD (sperimentale)"

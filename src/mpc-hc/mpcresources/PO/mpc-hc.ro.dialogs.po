@@ -660,12 +660,6 @@ msgid "Auto-hide the mouse pointer during playback in windowed mode"
 msgstr ""
 "Ascunde automat indicatorul mausului în timpul redării în mod fereastră"
 
-msgctxt "IDD_PPAGETWEAKS_IDC_CHECK4"
-msgid "Display \"Now Playing\" information in Skype's mood message"
-msgstr ""
-"Afișează informații pentru „Acum se redă” în mesajul din Skype privind "
-"starea de spirit"
-
 msgctxt "IDD_PPAGETWEAKS_IDC_CHECK_LCD"
 msgid "Enable Logitech LCD support (experimental)"
 msgstr ""

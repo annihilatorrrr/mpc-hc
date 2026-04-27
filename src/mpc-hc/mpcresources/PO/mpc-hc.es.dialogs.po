@@ -659,11 +659,6 @@ msgid "Auto-hide the mouse pointer during playback in windowed mode"
 msgstr ""
 "Ocultar automáticamente el ratón durante la reproducción en modo ventana"
 
-msgctxt "IDD_PPAGETWEAKS_IDC_CHECK4"
-msgid "Display \"Now Playing\" information in Skype's mood message"
-msgstr ""
-"Mostrar información «Now playing [...]» en el estado de ánimo de Skype"
-
 msgctxt "IDD_PPAGETWEAKS_IDC_CHECK_LCD"
 msgid "Enable Logitech LCD support (experimental)"
 msgstr ""

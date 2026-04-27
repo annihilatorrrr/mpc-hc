@@ -192,7 +192,6 @@ CAppSettings::CAppSettings()
     , bFastSeek(true)
     , eFastSeekMethod(FASTSEEK_NEAREST_KEYFRAME)
     , fShowChapters(true)
-    , bNotifySkype(false)
     , fPreventMinimize(false)
     , bUseEnhancedTaskBar(true)
     , fLCDSupport(false)
@@ -1285,8 +1284,6 @@ void CAppSettings::SaveSettings(bool write_full_history /* = false */)
     pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_UPDATER_AUTO_CHECK, nUpdaterAutoCheck);
     pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_UPDATER_DELAY, nUpdaterDelay);
 
-    pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_NOTIFY_SKYPE, bNotifySkype);
-
     pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_JPEG_QUALITY, nJpegQuality);
 
     pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_COVER_ART, bEnableCoverArt);
@@ -2225,8 +2222,6 @@ void CAppSettings::LoadSettings()
     if (nUpdaterDelay < 1) {
         nUpdaterDelay = 1;
     }
-
-    bNotifySkype = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_NOTIFY_SKYPE, FALSE);
 
     nJpegQuality = pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_JPEG_QUALITY, 90);
     if (nJpegQuality < 20 || nJpegQuality > 100) {

@@ -56,7 +56,6 @@
 #include "CoverArt.h"
 #include "CrashReporter.h"
 #include "KeyProvider.h"
-#include "SkypeMoodMsgHandler.h"
 #include "Translations.h"
 #include "UpdateChecker.h"
 #include "WebServer.h"
@@ -263,8 +262,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
     ON_REGISTERED_MESSAGE(WM_NOTIFYICON, OnNotifyIcon)
 
     ON_REGISTERED_MESSAGE(s_uTBBC, OnTaskBarThumbnailsCreate)
-
-    ON_REGISTERED_MESSAGE(SkypeMoodMsgHandler::uSkypeControlAPIAttach, OnSkypeAttach)
 
     ON_WM_SETFOCUS()
     ON_WM_GETMINMAXINFO()
@@ -1155,8 +1152,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
     WTSRegisterSessionNotification();
 
-    UpdateSkypeHandler();
-
     m_popupMenu.fulfillThemeReqs();
     m_mainPopupMenu.fulfillThemeReqs();
 
@@ -1403,11 +1398,6 @@ LRESULT CMainFrame::OnNotifyIcon(WPARAM wParam, LPARAM lParam)
 LRESULT CMainFrame::OnTaskBarThumbnailsCreate(WPARAM, LPARAM)
 {
     return CreateThumbnailToolbar();
-}
-
-LRESULT CMainFrame::OnSkypeAttach(WPARAM wParam, LPARAM lParam)
-{
-    return m_pSkypeMoodMsgHandler ? m_pSkypeMoodMsgHandler->HandleAttach(wParam, lParam) : FALSE;
 }
 
 void CMainFrame::ShowTrayIcon(bool bShow)
@@ -2667,7 +2657,6 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
                     OpenSetupWindowTitle();
                 }
                 MediaTransportControlSetMedia();
-                SendNowPlayingToSkype();
                 SendNowPlayingToApi(false);
             }
 
@@ -4390,7 +4379,6 @@ LRESULT CMainFrame::OnFilePostOpenmedia(WPARAM wParam, LPARAM lParam)
 
     // notify listeners
     if (GetPlaybackMode() != PM_DIGITAL_CAPTURE) {
-        SendNowPlayingToSkype();
         SendNowPlayingToApi();
     }
 
@@ -4577,8 +4565,6 @@ void CMainFrame::OnFilePostClosemedia(bool bNextIsQueued/* = false*/)
     //}
 
     SetAlwaysOnTop(s.iOnTop);
-
-    SendNowPlayingToSkype();
 
     // try to release external objects
     UnloadUnusedExternalObjects();
@@ -5049,9 +5035,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
         PLAYER_LOG(_T("CMainFrame::OnCopyData"));
     }
 
-    if (m_pSkypeMoodMsgHandler && m_pSkypeMoodMsgHandler->HandleMessage(pWnd->GetSafeHwnd(), pCDS)) {
-        return TRUE;
-    } else if (pCDS->dwData != 0x6ABE51 || pCDS->cbData < sizeof(DWORD)) {
+    if (pCDS->dwData != 0x6ABE51 || pCDS->cbData < sizeof(DWORD)) {
         if (s.hMasterWnd) {
             ProcessAPICommand(pCDS);
             return TRUE;
@@ -16589,61 +16573,6 @@ void CMainFrame::DoTunerScan(TunerScanData* pTSD)
     }
 }
 
-// Skype
-
-void CMainFrame::SendNowPlayingToSkype()
-{
-    if (!m_pSkypeMoodMsgHandler) {
-        return;
-    }
-
-    CString msg;
-
-    if (GetLoadState() == MLS::LOADED) {
-        CString title, author;
-
-        m_wndInfoBar.GetLine(StrRes(IDS_INFOBAR_TITLE), title);
-        m_wndInfoBar.GetLine(StrRes(IDS_INFOBAR_AUTHOR), author);
-
-        if (title.IsEmpty()) {
-            CPlaylistItem pli;
-            if (m_wndPlaylistBar.GetCur(pli, true)) {
-                CString label = !pli.m_label.IsEmpty() ? pli.m_label : pli.m_fns.GetHead();
-
-                if (GetPlaybackMode() == PM_FILE) {
-                    CString fn = label;
-                    if (!pli.m_bYoutubeDL && PathUtils::IsURL(fn)) {
-                        int i = fn.Find('?');
-                        if (i >= 0) {
-                            fn = fn.Left(i);
-                        }
-                    }
-                    CPath path(fn);
-                    path.StripPath();
-                    path.MakePretty();
-                    path.RemoveExtension();
-                    title = (LPCTSTR)path;
-                    author.Empty();
-                } else if (IsPlaybackCaptureMode()) {
-                    title = GetCaptureTitle();
-                    author.Empty();
-                } else if (GetPlaybackMode() == PM_DVD) {
-                    title = _T("DVD");
-                    author.Empty();
-                }
-            }
-        }
-
-        if (!author.IsEmpty()) {
-            msg.Format(_T("%s - %s"), author.GetString(), title.GetString());
-        } else {
-            msg = title;
-        }
-    }
-
-    m_pSkypeMoodMsgHandler->SendMoodMessage(msg);
-}
-
 // dynamic menus
 
 void CMainFrame::CreateDynamicMenus()
@@ -19477,7 +19406,6 @@ void CMainFrame::OpenMedia(CAutoPtr<OpenMediaData> pOMD)
             m_wndCaptureBar.m_capdlg.SetVideoInput(pDeviceData->vinput);
             m_wndCaptureBar.m_capdlg.SetVideoChannel(pDeviceData->vchannel);
             m_wndCaptureBar.m_capdlg.SetAudioInput(pDeviceData->ainput);
-            SendNowPlayingToSkype();
             return;
         }
     }
@@ -20173,7 +20101,6 @@ void CMainFrame::StartTunerScan(CAutoPtr<TunerScanData> pTSD)
     m_wndNavigationBar.m_navdlg.SetChannelInfoAvailable(false);
     RecalcLayout();
     OpenSetupWindowTitle();
-    SendNowPlayingToSkype();
 
     if (m_pGraphThread && m_pGraphThread->m_hThread) {
         m_pGraphThread->PostThreadMessage(CGraphThread::TM_TUNER_SCAN, (WPARAM)0, (LPARAM)pTSD.Detach());
@@ -20360,9 +20287,7 @@ LRESULT CMainFrame::OnCurrentChannelInfoUpdated(WPARAM wParam, LPARAM lParam)
             m_OSD.DisplayMessage(OSD_TOPLEFT, sChannelInfo, 3500);
         }
 
-        // Update window title and skype status
         OpenSetupWindowTitle();
-        SendNowPlayingToSkype();
     } else {
         ASSERT(FALSE);
     }
@@ -22040,17 +21965,6 @@ void CMainFrame::WTSUnRegisterSessionNotification()
     }
 }
 
-void CMainFrame::UpdateSkypeHandler()
-{
-    const auto& s = AfxGetAppSettings();
-    if (s.bNotifySkype && !m_pSkypeMoodMsgHandler) {
-        m_pSkypeMoodMsgHandler.Attach(DEBUG_NEW SkypeMoodMsgHandler());
-        m_pSkypeMoodMsgHandler->Connect(m_hWnd);
-    } else if (!s.bNotifySkype && m_pSkypeMoodMsgHandler) {
-        m_pSkypeMoodMsgHandler.Free();
-    }
-}
-
 void CMainFrame::UpdateSeekbarChapterBag()
 {
     const auto& s = AfxGetAppSettings();
@@ -22158,9 +22072,6 @@ void CMainFrame::UpdateControlState(UpdateControlTarget target)
                 m_currentCoverAuthor.Empty();
                 ClearArtFromViews();
             }
-            break;
-        case UPDATE_SKYPE:
-            UpdateSkypeHandler();
             break;
         case UPDATE_SEEKBAR_CHAPTERS:
             UpdateSeekbarChapterBag();
