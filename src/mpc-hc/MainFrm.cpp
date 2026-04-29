@@ -3969,7 +3969,7 @@ void CMainFrame::OnUpdatePlayerStatus(CCmdUI* pCmdUI)
     if (GetLoadState() == MLS::LOADING) {
         m_wndStatusBar.SetStatusMessage(StrRes(IDS_CONTROLS_OPENING));
         if (AfxGetAppSettings().bUseEnhancedTaskBar && m_pTaskbarList) {
-            m_pTaskbarList->SetProgressState(m_hWnd, TBPF_INDETERMINATE);
+            m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NOPROGRESS);
         }
     } else if (GetLoadState() == MLS::LOADED) {
         if (!m_tempstatus_msg.IsEmpty()) {
@@ -4169,7 +4169,7 @@ void CMainFrame::OnUpdatePlayerStatus(CCmdUI* pCmdUI)
     } else if (GetLoadState() == MLS::CLOSING) {
         m_wndStatusBar.SetStatusMessage(StrRes(IDS_CONTROLS_CLOSING));
         if (AfxGetAppSettings().bUseEnhancedTaskBar && m_pTaskbarList) {
-            m_pTaskbarList->SetProgressState(m_hWnd, TBPF_INDETERMINATE);
+            m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NOPROGRESS);
         }
     } else {
         m_wndStatusBar.SetStatusMessage(m_closingmsg);
