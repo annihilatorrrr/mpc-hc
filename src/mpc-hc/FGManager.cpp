@@ -44,6 +44,7 @@
 #include <mpconfig.h>
 #include <mvrInterfaces.h>
 #include "../src/thirdparty/LAVFilters/src/include/IURLSourceFilterLAV.h"
+#include "Logger.h"
 
 #include <initguid.h>
 #include "moreuuids.h"
@@ -460,8 +461,20 @@ HRESULT CFGManager::EnumSourceFilters(LPCWSTR lpcwstrFileName, CFGFilterList& fl
 
 HRESULT CFGManager::AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrFilterName, IBaseFilter** ppBF)
 {
+    const CAppSettings& s = AfxGetAppSettings();
+
     CLSID clsid = pFGF->GetCLSID();
-    TRACE(_T("FGM: AddSourceFilter trying '%s'\n"), CStringFromGUID(clsid).GetString());
+    CString filtername;
+    if (lpcwstrFilterName) {
+        filtername = lpcwstrFilterName;
+    }
+    if (filtername.IsEmpty()) {
+        filtername = CStringFromGUID(clsid).GetString();
+    }
+    TRACE(_T("FGM: AddSourceFilter trying '%s'\n"), filtername);
+    if (USE_GRAPH_LOGGER(s)) {
+        GRAPH_LOG(L"AddSourceFilter: trying %s", filtername);
+    }
 
     CheckPointer(lpcwstrFileName, E_POINTER);
     CheckPointer(ppBF, E_POINTER);
@@ -545,6 +558,10 @@ HRESULT CFGManager::AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LP
     *ppBF = pBF.Detach();
 
     m_pUnks.AddTailList(&pUnks);
+
+    if (USE_GRAPH_LOGGER(s)) {
+        GRAPH_LOG(L"AddSourceFilter: success");
+    }
 
     return S_OK;
 }
@@ -680,6 +697,7 @@ HRESULT CFGManager::Connect(IPin* pPinOut, IPin* pPinIn, bool bContinueRender)
         return E_ABORT;
     }
 
+    const CAppSettings& s = AfxGetAppSettings();
     HRESULT hr;
 
     if (S_OK != IsPinDirection(pPinOut, PINDIR_OUTPUT)
@@ -748,6 +766,14 @@ HRESULT CFGManager::Connect(IPin* pPinOut, IPin* pPinIn, bool bContinueRender)
 
     CComPtr<IBaseFilter> pFilterPinOut = GetFilterFromPin(pPinOut);
     CLSID clsid_pinout = GetCLSID(pFilterPinOut);
+    CFilterInfo fi;
+    CString filtername_pinout;
+    if (SUCCEEDED(pFilterPinOut->QueryFilterInfo(&fi))) {
+        filtername_pinout = fi.achName;
+    }
+    if (filtername_pinout.IsEmpty()) {
+        filtername_pinout = CLSIDToString(clsid_pinout);
+    }
 
     {
         CInterfaceList<IBaseFilter> pBFs;
@@ -895,25 +921,31 @@ HRESULT CFGManager::Connect(IPin* pPinOut, IPin* pPinIn, bool bContinueRender)
                 filtername = CLSIDToString(candidate);
             }
             TRACE(_T("FGM: Connecting '%s'\n"), filtername);
+            if (USE_GRAPH_LOGGER(s)) {
+                GRAPH_LOG(L"Trying %s", filtername);
+            }
 
             CComPtr<IBaseFilter> pBF;
             CInterfaceList<IUnknown, &IID_IUnknown> pUnks;
             hr = pFGF->Create(&pBF, pUnks);
             if (FAILED(hr)) {
                 TRACE(_T("FGM: Filter creation failed\n"));
+                if (USE_GRAPH_LOGGER(s)) {
+                    GRAPH_LOG(L"Filter creation failed");
+                }
                 if (!m_bIsCapture) {
                     // Check if selected video renderer fails to load
                     CLSID filter = pFGF->GetCLSID();
                     if (filter == CLSID_MPCVRAllocatorPresenter || filter == CLSID_madVRAllocatorPresenter || filter == CLSID_DXRAllocatorPresenter) {
                         if (IDYES == AfxMessageBox(_T("The selected video renderer has failed to load.\n\nThe player will now fallback to using a basic video renderer, which has reduced performance and quality. Subtitles may also fail to load.\n\nDo you want to change settings to use the default video renderer (EVR-CP/VMR9)? (player restart required)"), MB_ICONEXCLAMATION | MB_YESNO, 0)) {
-                            CAppSettings& s = AfxGetAppSettings();
-                            s.iDSVideoRendererType = IsCLSIDRegistered(CLSID_EnhancedVideoRenderer) ? VIDRNDT_DS_EVR_CUSTOM : VIDRNDT_DS_VMR9RENDERLESS;
+                            CAppSettings& s2 = AfxGetAppSettings();
+                            s2.iDSVideoRendererType = IsCLSIDRegistered(CLSID_EnhancedVideoRenderer) ? VIDRNDT_DS_EVR_CUSTOM : VIDRNDT_DS_VMR9RENDERLESS;
                         }
                     } else if (filter == CLSID_EVRAllocatorPresenter || filter == CLSID_VMR9AllocatorPresenter) {
                         if (IDYES == AfxMessageBox(_T("The selected video renderer has failed to load.\n\nThis problem is often caused by a bug in the graphics driver. Or you may be using a generic driver which has limited capabilities. It is recommended to update the graphics driver to solve this problem. A proper driver is required for optimal video playback performance and quality.\n\nThe player will now fallback to using a basic video renderer, which has reduced performance and quality. Subtitles may also fail to load.\n\nYou can select a different renderer here:\nOptions > playback > Output\n\nDo you want to use the basic video renderer by default?"), MB_ICONEXCLAMATION | MB_YESNO, 0)) {
-                            CAppSettings& s = AfxGetAppSettings();
-                            s.iDSVideoRendererType = IsCLSIDRegistered(CLSID_EnhancedVideoRenderer) ? VIDRNDT_DS_EVR : VIDRNDT_DS_VMR9WINDOWED;
-                            s.SetSubtitleRenderer(CAppSettings::SubtitleRenderer::VS_FILTER);
+                            CAppSettings& s2 = AfxGetAppSettings();
+                            s2.iDSVideoRendererType = IsCLSIDRegistered(CLSID_EnhancedVideoRenderer) ? VIDRNDT_DS_EVR : VIDRNDT_DS_VMR9WINDOWED;
+                            s2.SetSubtitleRenderer(CAppSettings::SubtitleRenderer::VS_FILTER);
                             // Disable DXVA in internal video decoder
                             CMPlayerCApp* pApp = AfxGetMyApp();
                             pApp->WriteProfileInt(IDS_R_INTERNAL_LAVVIDEO_HWACCEL, _T("HWAccel"), 0);
@@ -925,6 +957,9 @@ HRESULT CFGManager::Connect(IPin* pPinOut, IPin* pPinIn, bool bContinueRender)
 
             if (FAILED(hr = AddFilter(pBF, pFGF->GetName()))) {
                 TRACE(_T("FGM: Adding the filter failed\n"));
+                if (USE_GRAPH_LOGGER(s)) {
+                    GRAPH_LOG(L"Adding filter to graph failed");
+                }
                 pUnks.RemoveAll();
                 pBF.Release();
                 continue;
@@ -949,7 +984,10 @@ HRESULT CFGManager::Connect(IPin* pPinOut, IPin* pPinIn, bool bContinueRender)
             }
             */
             if (SUCCEEDED(hr)) {
-                TRACE(_T("FGM: Filter connected to %s\n"), CLSIDToString(clsid_pinout));
+                TRACE(_T("FGM: %s connected to %s\n"), filtername, filtername_pinout);
+                if (USE_GRAPH_LOGGER(s)) {
+                    GRAPH_LOG(L"%s connected to %s", filtername, filtername_pinout);
+                }
                 if (!IsStreamEnd(pBF)) {
                     fDeadEnd = false;
                 }
@@ -1016,6 +1054,9 @@ HRESULT CFGManager::Connect(IPin* pPinOut, IPin* pPinIn, bool bContinueRender)
                 }
             }
 
+            if (USE_GRAPH_LOGGER(s)) {
+                GRAPH_LOG(L"Can't connect");
+            }
             TRACE(_T("FGM: Failed to connect to %s\n"), CLSIDToString(clsid_pinout));
             CPinInfo infoPinOut;
             if (SUCCEEDED(pPinOut->QueryPinInfo(&infoPinOut))) {
@@ -1067,6 +1108,15 @@ STDMETHODIMP CFGManager::RenderFile(LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrPlay
     TRACE(_T("CFGManager::RenderFile on thread: %lu\n"), GetCurrentThreadId());
     CAutoLock cAutoLock(this);
 
+    const CAppSettings& s = AfxGetAppSettings();
+    if (USE_GRAPH_LOGGER(s)) {
+        if (m_bIsPreview) {
+            GRAPH_LOG(L"Building filter graph (preview)");
+        } else {
+            GRAPH_LOG(L"Building filter graph");
+        }
+    }
+
     m_streampath.RemoveAll();
     m_deadends.RemoveAll();
 
@@ -1075,6 +1125,9 @@ STDMETHODIMP CFGManager::RenderFile(LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrPlay
 
     CFGFilterList fl;
     if (FAILED(hr = EnumSourceFilters(lpcwstrFileName, fl))) {
+        if (USE_GRAPH_LOGGER(s)) {
+            GRAPH_LOG(L"Graph building failure: 0x%x", hr);
+        }
         return hr;
     }
 
@@ -1101,6 +1154,9 @@ STDMETHODIMP CFGManager::RenderFile(LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrPlay
                 // insert null video renderer on next RenderFile call which is used for audio dubs
                 m_ignoreVideo = True;
                 TRACE(_T("CFGManager::RenderFile complete\n"));
+                if (USE_GRAPH_LOGGER(s)) {
+                    GRAPH_LOG(L"Graph completed successfully");
+                }
                 return hr;
             }
 
@@ -1121,7 +1177,17 @@ STDMETHODIMP CFGManager::RenderFile(LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrPlay
 
     // If RFS was part of the graph, return its error code instead of the last error code.
     // TODO: Improve filter error reporting to graph manager.
-    return hrRFS != S_OK ? hrRFS : hr;
+    HRESULT ret = hrRFS != S_OK ? hrRFS : hr;
+
+    if (USE_GRAPH_LOGGER(s)) {
+        if (SUCCEEDED(ret)) {
+            GRAPH_LOG(L"Graph completed successfully");
+        } else {
+            GRAPH_LOG(L"Graph building failure: 0x%x", hr);
+        }
+    }
+
+    return ret;
 }
 
 STDMETHODIMP CFGManager::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrFilterName, IBaseFilter** ppFilter)
@@ -2686,6 +2752,14 @@ CFGManagerCustom::CFGManagerCustom(LPCWSTR pClassName, LPCWSTR pInputFileURL, HW
     : CFGManager(pClassName, pInputFileURL, hWnd, IsPreview)
 {
     const CAppSettings& s = AfxGetAppSettings();
+
+    if (USE_GRAPH_LOGGER(s)) {
+        if (IsPreview) {
+            GRAPH_LOG(L"Initializing graph manager (preview)");
+        } else {
+            GRAPH_LOG(L"Initializing graph manager");
+        }
+    }
 
     bool bOverrideBroadcom = false;
     CFGFilter* pFGF;
