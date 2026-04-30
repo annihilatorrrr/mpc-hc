@@ -2231,7 +2231,7 @@ void CAppSettings::LoadSettings()
     bEnableCoverArt = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_COVER_ART, TRUE);
     nCoverArtSizeLimit = pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_COVER_ART_SIZE_LIMIT, 600);
 
-    DebugLogMask = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_LOGGING, 0);
+    DebugLogMask = pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_LOGGING, 0);
 
     eSubtitleRenderer = static_cast<SubtitleRenderer>(pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_SUBTITLE_RENDERER, static_cast<int>(SubtitleRenderer::INTERNAL)));
     if (eSubtitleRenderer == SubtitleRenderer::RESERVED) {
