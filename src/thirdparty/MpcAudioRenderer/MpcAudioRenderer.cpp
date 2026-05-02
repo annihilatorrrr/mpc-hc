@@ -1857,6 +1857,7 @@ HRESULT CMpcAudioRenderer::InitAudioClient()
 			// get list of supported output formats - wBitsPerSample, nChannels(dwChannelMask), nSamplesPerSec
 			const WORD  wBitsPerSampleValues[] = {16, 24, 32};
 			const DWORD nSamplesPerSecValues[] = {44100, 48000, 88200, 96000, 176400, 192000, 384000};
+			const DWORD nSamplesPerSecValues2[] = {44100, 48000};
 			const channel_layout_t ChannelLayoutValues[] = {
 				{2, KSAUDIO_SPEAKER_STEREO},
 				{4, KSAUDIO_SPEAKER_QUAD},
@@ -1876,19 +1877,22 @@ HRESULT CMpcAudioRenderer::InitAudioClient()
 			};
 
 			WAVEFORMATEXTENSIBLE wfex;
+			bool real32bit_tested = false;
 
 			// 1 - wBitsPerSample
 			for (const auto& _bitdepth : wBitsPerSampleValues) {
-				for (const auto& _samplerate : nSamplesPerSecValues) {
+				for (const auto& _samplerate : nSamplesPerSecValues2) {
 					CreateFormat(wfex, _bitdepth, 2, KSAUDIO_SPEAKER_STEREO, _samplerate);
 					if (S_OK == m_pAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_EXCLUSIVE, (WAVEFORMATEX*)&wfex, nullptr)) {
 						if (Contains(m_wBitsPerSampleList, _bitdepth) == false) {
 							m_wBitsPerSampleList.push_back(_bitdepth);
+							break;
 						}
 
-						if (_bitdepth == 32) {
+						if (_bitdepth == 32 && !real32bit_tested) {
 							CreateFormat(wfex, _bitdepth, 2, KSAUDIO_SPEAKER_STEREO, _samplerate, 32);
 							m_bReal32bitSupport = (S_OK == m_pAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_EXCLUSIVE, (WAVEFORMATEX*)&wfex, nullptr));
+							real32bit_tested = true;
 						}
 					}
 				}
@@ -1900,11 +1904,18 @@ HRESULT CMpcAudioRenderer::InitAudioClient()
 
 			// 2 - m_nSamplesPerSec
 			for (const auto& _bitdepth : m_wBitsPerSampleList) {
+				bool support_88200 = false;
 				for (const auto& _samplerate : nSamplesPerSecValues) {
+					if (_samplerate == 176400 && !support_88200) {
+						continue;
+					}
 					CreateFormat(wfex, _bitdepth, ChannelLayoutValues[0].channels, ChannelLayoutValues[0].layout, _samplerate);
 					if (S_OK == m_pAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_EXCLUSIVE, (WAVEFORMATEX*)&wfex, nullptr)) {
 						AudioParams ap(_bitdepth, _samplerate);
 						m_AudioParamsList.push_back(ap);
+						if (_samplerate == 88200) {
+							support_88200 = true;
+						}
 					}
 				}
 			}
