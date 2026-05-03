@@ -105,7 +105,7 @@ public:
 	void EndReleaseTimer();
 	void ReleaseDevice();
 
-    FILTER_STATE GetFilterState() { return m_filterState; }
+	FILTER_STATE GetFilterState() { return m_filterState; }
 
 	DECLARE_IUNKNOWN
 
@@ -230,9 +230,10 @@ private:
 	bool CopyWaveFormat(const WAVEFORMATEX *pSrcWaveFormatEx, WAVEFORMATEX **ppDestWaveFormatEx);
 
 	bool    IsBitstream(const WAVEFORMATEX *pWaveFormatEx) const;
-	bool    CreateFormatSupportList();
+	bool    CreateSupportedFormatList();
 	HRESULT SelectFormat(const WAVEFORMATEX* pwfx, WAVEFORMATEXTENSIBLE& wfex);
-	void    CreateFormat(WAVEFORMATEXTENSIBLE& wfex, WORD wBitsPerSample, WORD nChannels, DWORD dwChannelMask, DWORD nSamplesPerSec, WORD wValidBitsPerSample = 0);
+	void    CreateFormat(WAVEFORMATEXTENSIBLE& wfex,
+						 WORD wBitsPerSample, WORD nChannels, DWORD dwChannelMask, DWORD nSamplesPerSec, WORD wValidBitsPerSample = 0) const;
 
 	HRESULT StartAudioClient();
 
@@ -305,7 +306,8 @@ private:
 	std::vector<WORD>   m_nChannelsList;
 	std::vector<DWORD>  m_dwChannelMaskList;
 
-	BOOL                m_bReal32bitSupport;
+	bool                m_bReal32bitSupport;
+	bool                m_bReal32bitSupportChecked;
 
 	struct AudioParams {
 		WORD  wBitsPerSample;
