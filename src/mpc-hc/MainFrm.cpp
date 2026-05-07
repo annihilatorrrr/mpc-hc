@@ -19795,6 +19795,10 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
             bool killprocess = true;
             bool processmsg = true;
             bool extendedwait = false;
+            bool app_closing = !this->IsWindowVisible();
+            if (app_closing) {
+                waitdur += 4000ULL;
+            }
             int pm = 0;
             while (processmsg) {
                 dwWait = MsgWaitForMultipleObjects(1, &handle, FALSE, (DWORD)std::min(waitdur, 1500ULL), QS_POSTMESSAGE | QS_SENDMESSAGE);
@@ -19852,7 +19856,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
                     if (tckill > cur) {
                         waitdur = tckill - cur;
                     } else {
-                        if (extendedwait || m_fFullScreen || s.hMasterWnd || hibernating) {
+                        if (extendedwait || m_fFullScreen || s.hMasterWnd || hibernating || app_closing) {
                             processmsg = false;
                         } else {
                             CString timeoutmsg;
@@ -19949,6 +19953,10 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
         bool killprocess = true;
         bool processmsg = true;
         bool extendedwait = false;
+        bool app_closing = !this->IsWindowVisible();
+        if (app_closing) {
+            waitdur += 4000ULL;
+        }
         int pm = 0;
         while (processmsg) {
             // This needs to at least wake for QS_SENDMESSAGE because otherwise graph won't terminate until this times out.
@@ -20014,7 +20022,7 @@ void CMainFrame::CloseMedia(bool bNextIsQueued/* = false*/, bool bPendingFileDel
                 if (tckill > cur) {
                     waitdur = tckill - cur;
                 } else {
-                    if (extendedwait || m_fFullScreen || s.hMasterWnd || hibernating) {
+                    if (extendedwait || m_fFullScreen || s.hMasterWnd || hibernating || app_closing) {
                         processmsg = false;
                     } else {
                         CString timeoutmsg;
