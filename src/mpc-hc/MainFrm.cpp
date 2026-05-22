@@ -12679,8 +12679,8 @@ void CMainFrame::MoveVideoWindow(bool fShowStats/* = false*/, bool bSetStoppedVi
         int nCompensateForMenubar = m_bShowingFloatingMenubar && !IsD3DFullScreenMode() ? GetSystemMetrics(SM_CYMENU) : 0;
         windowRect.bottom += nCompensateForMenubar;
 
-        OAFilterState fs = GetMediaState();
-        if (fs != State_Stopped || bSetStoppedVideoRect || m_fShockwaveGraph) {
+        OAFilterState fs = UpdateCachedMediaState();
+        if (fs == State_Running || fs == State_Paused || bSetStoppedVideoRect || m_fShockwaveGraph) {
             const CSize szVideo = GetVideoSize();
 
             m_dLastVideoScaleFactor = std::min((double)windowRect.Size().cx / szVideo.cx,
@@ -12824,21 +12824,23 @@ void CMainFrame::MoveVideoWindow(bool fShowStats/* = false*/, bool bSetStoppedVi
         windowRect.top -= nCompensateForMenubar;
         windowRect.bottom -= nCompensateForMenubar;
 
-        if (m_pCAP) {
-            m_pCAP->SetPosition(windowRect, videoRect);
-            UpdateSubtitleColorInfo();
-            UpdateSubtitleRenderingParameters();
-        } else  {
-            if (m_pBV) {
-                m_pBV->SetDefaultSourcePosition();
-                m_pBV->SetDestinationPosition(videoRect.left, videoRect.top, videoRect.Width(), videoRect.Height());
-            }
-            if (m_pVW) {
-                m_pVW->SetWindowPosition(windowRect.left, windowRect.top, windowRect.Width(), windowRect.Height());
-            }
+        if (fs != -1) {
+            if (m_pCAP) {
+                m_pCAP->SetPosition(windowRect, videoRect);
+                UpdateSubtitleColorInfo();
+                UpdateSubtitleRenderingParameters();
+            } else {
+                if (m_pBV) {
+                    m_pBV->SetDefaultSourcePosition();
+                    m_pBV->SetDestinationPosition(videoRect.left, videoRect.top, videoRect.Width(), videoRect.Height());
+                }
+                if (m_pVW) {
+                    m_pVW->SetWindowPosition(windowRect.left, windowRect.top, windowRect.Width(), windowRect.Height());
+                }
 
-            if (m_pMFVDC) {
-                m_pMFVDC->SetVideoPosition(nullptr, &windowRect);
+                if (m_pMFVDC) {
+                    m_pMFVDC->SetVideoPosition(nullptr, &windowRect);
+                }
             }
         }
 
