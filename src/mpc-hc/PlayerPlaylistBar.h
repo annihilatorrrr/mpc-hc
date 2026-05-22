@@ -167,6 +167,7 @@ public:
     void SetFirstSelected();
     void SetFirst();
     void SetLast();
+    void EnsureCurrentVisible();
     void SetCurValid(bool fValid);
     void SetCurLabel(CString label);
     void SetCurTime(REFERENCE_TIME rt);
