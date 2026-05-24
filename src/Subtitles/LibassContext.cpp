@@ -914,16 +914,18 @@ STDMETHODIMP LibassContext::Render(REFERENCE_TIME rt, SubPicDesc& spd, RECT& bbo
             frameRect = CRect(spd.vidrect);
         }
         size = CSize(frameRect.Width(), frameRect.Height());
+        ASS_Renderer* renderer = m_renderer.get();
         if (relToWin && (spd.vidrect.top > 0 || spd.h > spd.vidrect.bottom || spd.vidrect.left > 0 && spd.w > spd.vidrect.right)) {
             // handle pan&scan outside visible area
             int t = std::max(0, (int)spd.vidrect.top);
             int b = std::max(0, spd.h - (int)spd.vidrect.bottom);
             int l = std::max(0, (int)spd.vidrect.left);
             int r = std::max(0, spd.w - (int)spd.vidrect.right);
-            ass_set_margins(m_renderer.get(), t, b, l, r);
-            ass_set_use_margins(m_renderer.get(), true);
+            ass_set_margins(renderer, t, b, l, r);
+            ass_set_use_margins(renderer, true);
         } else {
-            ass_set_use_margins(m_renderer.get(), false);
+            ass_set_margins(renderer, 0, 0, 0, 0);
+            ass_set_use_margins(renderer, false);
         }
         SetFrameSize(size.cx, size.cy);
 
