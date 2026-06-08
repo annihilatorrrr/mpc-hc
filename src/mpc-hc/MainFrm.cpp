@@ -16138,6 +16138,9 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
                         if (m_pCAP2 || m_pCAP3) {
                             if (SUCCEEDED(pPB->Read(_T("rotation"), &var, nullptr)) && var.vt == VT_BSTR) {
                                 int rotatevalue = _wtoi(var.bstrVal);
+                                if (rotatevalue < 0) {
+                                    rotatevalue += 360;
+                                }
                                 if (rotatevalue == 90 || rotatevalue == 180 || rotatevalue == 270) {
                                     m_iDefRotation = rotatevalue;
                                     if (m_pCAP3) {
