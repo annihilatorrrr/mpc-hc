@@ -9086,25 +9086,32 @@ void CMainFrame::OnPlayPlay()
     if (IsStateLoaded()) {
         // If playback was previously stopped or ended, we need to reset the window size
         bool bVideoWndNeedReset = GetMediaState() == State_Stopped || m_fEndOfStream;
+        bool still_image = !m_bFirstPlay && !m_fAudioOnly && !m_wndSeekBar.HasDuration() && m_wndStatusBar.GetTimerCurPos() == 0LL && GetPlaybackMode() == PM_FILE && IsImageFile(lastOpenFile);
 
         KillTimersStop();
 
         if (GetPlaybackMode() == PM_FILE) {
+            if (still_image) {
+                // images need to be reloaded
+                if (bVideoWndNeedReset) {
+                    OnFileReopen();
+                }
+                return;
+            }
+            if (!m_bFirstPlay && !m_fAudioOnly && m_wndSeekBar.HasDuration() && m_dwLastPause && s.iReloadAfterLongPause > 0) {
+                // after long pause reload video file to avoid playback issues on some systems (with buggy drivers)
+                if (GetTickCount64() - m_dwLastPause >= s.iReloadAfterLongPause * 60 * 1000ULL) {
+                    m_reloadFilename = lastOpenFile;
+                    m_rtReloadPos = m_fEndOfStream ? 0LL : m_wndSeekBar.GetPos();
+                    reloadABRepeat = abRepeat;
+                    m_iReloadAudioIdx = GetCurrentAudioTrackIdx();
+                    m_iReloadSubIdx = GetCurrentSubtitleTrackIdx();
+                    OnFileReopen();
+                    return;
+                }
+            }
             if (m_fEndOfStream) {
                 SendMessage(WM_COMMAND, ID_PLAY_STOP);
-            } else {
-                if (!m_fAudioOnly && m_dwLastPause && m_wndSeekBar.HasDuration() && s.iReloadAfterLongPause > 0) {
-                    // after long pause reload video file to avoid playback issues on some systems (with buggy drivers)
-                    if (GetTickCount64() - m_dwLastPause >= s.iReloadAfterLongPause * 60 * 1000ULL) {
-                        m_reloadFilename = lastOpenFile;
-                        m_rtReloadPos = m_wndSeekBar.GetPos();
-                        reloadABRepeat = abRepeat;
-                        m_iReloadAudioIdx = GetCurrentAudioTrackIdx();
-                        m_iReloadSubIdx = GetCurrentSubtitleTrackIdx();
-                        OnFileReopen();
-                        return;
-                    }
-                }
             }
             if (m_pMS) {
                 if (FAILED(m_pMS->SetRate(m_dSpeedRate))) {
@@ -18749,7 +18756,7 @@ void CMainFrame::DoSeekTo(REFERENCE_TIME rtPos, bool bShowOSD /*= true*/)
     m_nStepForwardCount = 0;
 
     // skip seeks when duration is unknown
-    if (!m_wndSeekBar.HasDuration()) {
+    if (!m_wndSeekBar.HasDuration() && (rtPos > 0LL || m_wndStatusBar.GetTimerCurPos() == 0LL)) {
         return;
     }
 
