@@ -1864,6 +1864,8 @@ void CFGManagerCustom::InsertLAVSplitterSource(bool IsPreview)
         pFGLAVSplitterSource->AddEnabledFormat("m4v");
         pFGLAVSplitterSource->AddEnabledFormat("rawvideo");
         pFGLAVSplitterSource->AddEnabledFormat("apv");
+        // (animated) image
+        pFGLAVSplitterSource->m_extensions.AddTail(_T(".webp"));
         // audio
         pFGLAVSplitterSource->m_extensions.AddTail(_T(".amr"));
         pFGLAVSplitterSource->m_extensions.AddTail(_T(".mpc"));
@@ -2295,6 +2297,7 @@ void CFGManagerCustom::InsertLAVVideo(bool IsPreview)
 #if INTERNAL_DECODER_VP8
     pFGF = IsPreview || tra[TRA_VP8] ? pFGLAVVideo : pFGLAVVideoLM;
     pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_VP80);
+    pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_WEBP_ANIM);
 #endif
 #if INTERNAL_DECODER_VP9
     pFGF = IsPreview || tra[TRA_VP9] ? pFGLAVVideo : pFGLAVVideoLM;
@@ -2377,6 +2380,9 @@ void CFGManagerCustom::InsertLAVVideo(bool IsPreview)
     pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_FSV1);
     pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_FSV2);
     pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_LAV_RAWVIDEO);
+    pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_PNG);
+    pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_WEBP);
+    pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_GIF);
 #endif
 
     // Add LAV Video if needed

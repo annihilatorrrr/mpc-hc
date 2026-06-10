@@ -5534,6 +5534,7 @@ bool CMainFrame::IsImageFileExt(CStringW ext) {
     return (
         ext == _T(".jpg") || ext == _T(".jpeg") || ext == _T(".png") || ext == _T(".gif") || ext == _T(".bmp")
         || ext == _T(".tiff") || ext == _T(".jpe") || ext == _T(".tga") || ext == _T(".heic") || ext == _T(".avif")
+        || ext == _T(".webp")
     );
 }
 
