@@ -3273,7 +3273,16 @@ static VOID CALLBACK TimerCallbackFunc(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 
 void CMpcAudioRenderer::StartReleaseTimer()
 {
-	if (m_bReleaseDeviceIdle && !m_bPauseKeepActive && !m_hReleaseTimerHandle) {
+	if (m_bReleaseDeviceIdle && !m_bPauseKeepActive) {
+		ULONGLONG tcNow = GetTickCount64();
+		if (m_hReleaseTimerHandle) {
+			if (tcNow - m_tcIdleTimerCreate >= 200) {
+				EndReleaseTimer();
+			} else {
+				return;
+			}
+		}
+		m_tcIdleTimerCreate = tcNow;
 		std::ignore = CreateTimerQueueTimer(&m_hReleaseTimerHandle,
 											nullptr,
 											TimerCallbackFunc,

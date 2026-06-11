@@ -100,6 +100,7 @@ public:
 
 	bool m_bReleased             = false;
 	HANDLE m_hReleaseTimerHandle = nullptr;
+	ULONGLONG m_tcIdleTimerCreate = 0LL;
 
 	void StartReleaseTimer();
 	void EndReleaseTimer();
