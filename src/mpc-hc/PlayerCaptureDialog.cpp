@@ -664,11 +664,6 @@ void CPlayerCaptureDialog::InitControls()
 
 void CPlayerCaptureDialog::EmptyVideo()
 {
-    if (!this) {
-        ASSERT(false);
-        return;
-    }
-
     // first save channel from previous session
     if (m_pAMTuner && !m_vidDisplayName.IsEmpty()) {
         long lChannel = 0, lVivSub = 0, lAudSub = 0;
@@ -703,10 +698,6 @@ void CPlayerCaptureDialog::EmptyVideo()
 
 void CPlayerCaptureDialog::EmptyAudio()
 {
-    if (!this) {
-        return;
-    }
-
     m_afa.RemoveAll();
 
     m_pAMASC = nullptr;
@@ -1004,6 +995,11 @@ void CPlayerCaptureDialog::SetupVideoControls(
     CStringW displayName,
     IAMStreamConfig* pAMSC, IAMCrossbar* pAMXB, IAMTVTuner* pAMTuner)
 {
+    if (!this) {
+        ASSERT(false);
+        return;
+    }
+
     EmptyVideo();
 
     m_vidDisplayName = displayName;
@@ -1186,6 +1182,10 @@ void CPlayerCaptureDialog::SetupAudioControls(
     CStringW displayName,
     IAMStreamConfig* pAMSC, const CInterfaceArray<IAMAudioInputMixer>& pAMAIM)
 {
+    if (!this) {
+        return;
+    }
+
     EmptyAudio();
 
     m_audDisplayName = displayName;
